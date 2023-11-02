@@ -6,11 +6,12 @@ File: handle.py
 Date: 2023/11/01 12:11:35
 Brief: 
 """
+import sys
+sys.path.append('/root/code/astro_web')
 from typing import Tuple
 import reply
 import receive
 import web
-import sys
 import re
 import cpca
 import datetime
