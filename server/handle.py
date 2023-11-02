@@ -16,12 +16,17 @@ import re
 import cpca
 import datetime
 import os
-import json
+from bs4 import BeautifulSoup
+from project_util import all_trace_dict
 from project_util import get_dist_by_location
 from project_util import parse_glon_glat
 from project_util import dump_load_http_result, logger, build_almuten_http_data
 from project_util import fetch_almuten_soup, fetch_ixingpan_soup
-from bs4 import BeautifulSoup
+from project_util import load_knowledge_file, load_knowledge_data_old, load_jobs_file
+from project_util import parse_almuten_star, parse_almuten_house
+from project_util import parse_ixingpan_star, parse_ixingpan_house, parse_ixingpan_aspect
+from basic_analyse import get_square, get_house_energy
+from basic_analyse import parse_love, parse_marrage_2, parse_marrage, parse_wealth, parse_health, parse_work, parse_asc_star, parse_study, parse_nature
 
 
 USE_CACHE = True
@@ -35,7 +40,9 @@ def load_local_file():
 
     :return:
     """
-    pass
+    load_knowledge_file()
+    load_knowledge_data_old()
+    load_jobs_file()
 
 
 def get_basic_soup_from_http(customer_name, content) -> Tuple[str, BeautifulSoup, BeautifulSoup]:
@@ -156,31 +163,73 @@ class Handle():
 
             recMsg = receive.parse_xml(webData)
 
-            if isinstance(recMsg, receive.Msg) and recMsg.MsgType == 'text':
-                toUser = recMsg.FromUserName
-                fromUser = recMsg.ToUserName
+            if not isinstance(recMsg, receive.Msg) or recMsg != 'text':
+                logger.fatal('暂不处理')
+                return 'success'
 
-                content = recMsg.Content
-                content = content.decode('utf-8')
-                # print(type(content))
+            toUser = recMsg.FromUserName
+            fromUser = recMsg.ToUserName
 
-                # print(f'content:{content}')
-                # province, city, area = parse_location(content)
-                # reply_str = f'省份: {province}\n城市: {city}\n区: {area}'
-                error_msg, soup_ixingpan, soup_almuten = get_basic_soup_from_http(customer_name=fromUser, content=content)
+            content = recMsg.Content
+            content = content.decode('utf-8')
+            # print(type(content))
 
-                if error_msg != '':
-                    replyMsg = reply.TextMsg(toUser, fromUser, f'排盘失败!\n{error_msg}, 请重新检查输入...')
+            # print(f'content:{content}')
+            # province, city, area = parse_location(content)
+            # reply_str = f'省份: {province}\n城市: {city}\n区: {area}'
+            error_msg, soup_ixingpan, soup_almuten = get_basic_soup_from_http(customer_name=fromUser, content=content)
 
-                    return replyMsg.send()
+            if error_msg != '':
+                replyMsg = reply.TextMsg(toUser, fromUser, f'【排盘失败】\n{error_msg}, 请重新检查输入...')
+                return replyMsg.send()
 
+            # 加载知识库
+            load_local_file()
+            parse_almuten_star(soup_almuten)
+            parse_almuten_house()
 
-                replyMsg = reply.TextMsg(toUser, fromUser, '没毛病')
+            # 解析爱星盘结果
+            parse_ixingpan_star(soup_ixingpan)
+            parse_ixingpan_house(soup_ixingpan)
+            parse_ixingpan_aspect(soup_ixingpan)
+
+            get_square()
+            get_house_energy()
+
+            parse_love()
+            parse_marrage_2()
+            parse_marrage()
+            parse_wealth()
+            parse_health()
+            parse_work()
+            parse_asc_star()
+            parse_study()
+            parse_nature()
+
+            ret_vec = []
+
+            key_vec = ['个性显现及生活领域上的重点', '恋爱', '婚姻', '财富', '事业', '健康', '学业', '性格分析']
+            for key in key_vec:
+                if key not in all_trace_dict:
+                    continue
+
+                field_dict = all_trace_dict[key]
+
+                ret_vec.append(f'\n解析「{key}」')
+                # f.writelines(f'\n--------------------------- 解析「{key}」---------------------------')
+                for biz, sub_vec in field_dict.items():
+                    ret_vec.append(f'『{biz}』:')
+                    # f.writelines(f'\n『{biz}』:\n')
+                    # print(f'\n『{biz}』:')
+                    for index, sub in enumerate(sub_vec, start=1):
+                        # print(f'{index}、{sub}')
+                        # f.writelines(f'{index}、{sub}\n')
+                        ret_vec.append(f'{index}、{sub}')
+
+                replyMsg = reply.TextMsg(toUser, fromUser, '\n'.join(ret_vec))
 
                 return replyMsg.send()
-            else:
-                print("暂且不处理")
-                return "success"
+
         except Exception as Argument:
             print(Argument)
             return Argument
@@ -190,8 +239,8 @@ if __name__ == '__main__':
     inp_str_vec = ['山东省济南市历下区，时间是1989年8月5日下午12点58分',
                '山东省济南市历下区，时间是:1989.8.5 12点58分']
     for inp_str in inp_str_vec:
-        print(parse_time(inp_str))
-
+        #print(parse_time(inp_str))
+        pass
 
     import time
 
