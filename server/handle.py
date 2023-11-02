@@ -7,7 +7,6 @@ Date: 2023/11/01 12:11:35
 Brief: 
 """
 from typing import Tuple
-import hashlib
 import reply
 import receive
 import web
@@ -15,55 +14,66 @@ import sys
 import re
 import cpca
 import datetime
+import os
+import json
+from project_util import get_dist_by_location
+from project_util import parse_glon_glat
+from project_util import dump_load_http_result, logger, build_almuten_http_data
+from project_util import fetch_almuten_soup, fetch_ixingpan_soup
+from bs4 import BeautifulSoup
 
 
-# print("Python版本：", sys.version)
+USE_CACHE = True
 
-def parse_area(inp_str) -> Tuple[str, str, str]:
-    df = cpca.transform([inp_str])
+def load_local_file():
+    """
+    knowledge_web.ini
+    knowledge.csv
+    jobs.csv
+    ixingpan_area.json
 
-    province = df.iloc[0]['省']
-    city = df.iloc[0]['市']
-    area = df.iloc[0]['区']
-
-    if city == '市辖区':
-        city = province
-    
-    return province, city, area
-
-
-def parse_time(text: str) -> str:
-    # 匹配日期的正则表达式模式
-    date_pattern = r"(\d{4})[年.](\d{1,2})[月.](\d{1,2})[日]?"
-    # 匹配时间的正则表达式模式
-    time_pattern = r"([上下]午)?(\d{1,2})[点:](\d{1,2})[分]?"
-
-    # 提取日期
-    date_match = re.search(date_pattern, text)
-    if not date_match:
-        return None
-
-    year = int(date_match.group(1))
-    month = int(date_match.group(2))
-    day = int(date_match.group(3))
-
-    # 提取时间
-    time_match = re.search(time_pattern, text)
-    if not time_match:
-        return None
-
-    hour = int(time_match.group(2))
-    minute = int(time_match.group(3))
-    if time_match.group(1) == "下午" and hour < 12:
-        hour += 12
-
-    # 返回解析结果
-    dt = datetime.datetime(year, month, day, hour, minute)
-
-    return dt.strftime("%Y-%m-%d %H:%M:%S")
+    :return:
+    """
+    pass
 
 
-def get_astro_data(content, name=None):
+def get_basic_soup_from_http(customer_name, content) -> Tuple[str, BeautifulSoup, BeautifulSoup]:
+    folder_path = f'../cache/basic/{customer_name}'
+    os.makedirs(folder_path, exist_ok=True)
+
+    """ ixingpan Http Result. 有 cache 文件则从文件加载，没有走 http 请求 """
+    filename_ixingpan = f'{folder_path}/{customer_name}_ixingpan.pickle'
+
+    error_msg, birthday, dist, is_dst, toffset, location = prepare_http_data(content=content, name=customer_name)
+
+    if USE_CACHE and os.path.exists(filename_ixingpan):
+        soup_ixingpan = dump_load_http_result(filename=filename_ixingpan, is_load_mode=True)
+        logger.info(f'成功从本地加载本命盘数据，File=[{filename_ixingpan}]')
+    else:
+        soup_ixingpan = fetch_ixingpan_soup(name=customer_name, dist=dist, birthday_time=birthday, dst=is_dst, female=1)
+        dump_load_http_result(filename=filename_ixingpan, soup_obj=soup_ixingpan, is_load_mode=False)
+        logger.info(f'走Http请求获取爱星盘排盘信息，并且 Dump BeautifulSoup to File:{filename_ixingpan}')
+
+    # Update glon_deg, glat_deg. 用ixingpan结果中的
+    glon_deg, glat_deg = parse_glon_glat(soup=soup_ixingpan)
+
+    """ almuten Http Result. """
+    filename_almuten = f'{folder_path }/{customer_name}_almuten.pickle'
+
+    if USE_CACHE and os.path.exists(filename_almuten):
+        soup_almuten = dump_load_http_result(filename=filename_almuten, is_load_mode=True)
+        logger.info(f'成功从本地加载本命盘数据，File=[{filename_almuten}]')
+    else:
+        post_data = build_almuten_http_data(name=customer_name, birthinfo=birthday, loc=location, glon_deg=glon_deg, glat_deg=glat_deg, toffset=toffset, is_dst=is_dst)
+        soup_almuten = fetch_almuten_soup(post_data)
+
+        dump_load_http_result(filename=filename_almuten, soup_obj=soup_almuten, is_load_mode=False)
+        logger.info(f'走Http请求获取「宫神星」排盘信息，并且 Dump BeautifulSoup to File:{filename_almuten}')
+
+    return error_msg, soup_ixingpan, soup_almuten
+
+
+def prepare_http_data(content, name=None) -> Tuple[str, str, str, str, str, str]:
     '''
     name, birthday, location, cur_loc, glon_deg, glat_deg, toffset, is_dst, _ = load_customer_info(customer_name=customer_name)
     load_knowledge_file()
@@ -79,11 +89,54 @@ def get_astro_data(content, name=None):
     dist:3896
     '''
 
-    province, city, area = parse_area(content)
+    def parse_location(inp_str) -> Tuple[str, str, str]:
+        df = cpca.transform([inp_str])
+
+        province = df.iloc[0]['省']
+        city = df.iloc[0]['市']
+        area = df.iloc[0]['区']
+
+        return province, city, area
+
+    def parse_time(text: str) -> str:
+        # 匹配日期的正则表达式模式
+        date_pattern = r"(\d{4})[年.](\d{1,2})[月.](\d{1,2})[日]?"
+        # 匹配时间的正则表达式模式
+        time_pattern = r"([上下]午)?(\d{1,2})[点:](\d{1,2})[分]?"
+
+        # 提取日期
+        date_match = re.search(date_pattern, text)
+        if not date_match:
+            return None
+
+        year = int(date_match.group(1))
+        month = int(date_match.group(2))
+        day = int(date_match.group(3))
+
+        # 提取时间
+        time_match = re.search(time_pattern, text)
+        if not time_match:
+            return None
+
+        hour = int(time_match.group(2))
+        minute = int(time_match.group(3))
+        if time_match.group(1) == "下午" and hour < 12:
+            hour += 12
+
+        # 返回解析结果
+        dt = datetime.datetime(year, month, day, hour, minute)
+
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+    province, city, area = parse_location(content)
     birthday = parse_time(content)
+    error_msg, dist = get_dist_by_location(target_province=province, target_city=city, target_district=area)
+
+    # TODO: dynamic
+    is_dst = '0'
     toffset = 'GMT_ADD_8'
-    is_dst = 0
-    pass
+
+    return error_msg, birthday, dist, is_dst, toffset, f'{province}{city}{area}'
 
 
 class Handle(): 
@@ -103,11 +156,17 @@ class Handle():
                 # print(type(content))
 
                 # print(f'content:{content}')
-                province, city, area = parse_area(content)
+                # province, city, area = parse_location(content)
+                # reply_str = f'省份: {province}\n城市: {city}\n区: {area}'
+                error_msg, soup_ixingpan, soup_almuten = get_basic_soup_from_http(customer_name=fromUser, content=content)
 
-                reply_str = f'省份: {province}\n城市: {city}\n区: {area}'
+                if error_msg != '':
+                    replyMsg = reply.TextMsg(toUser, fromUser, f'{error_msg}，排盘失败！请重新检查输入...')
 
-                replyMsg = reply.TextMsg(toUser, fromUser, reply_str)
+                    return replyMsg.send()
+
+
+                replyMsg = reply.TextMsg(toUser, fromUser, '没毛病')
 
                 return replyMsg.send()
             else:
