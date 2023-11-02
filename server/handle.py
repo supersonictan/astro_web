@@ -46,6 +46,10 @@ def get_basic_soup_from_http(customer_name, content) -> Tuple[str, BeautifulSoup
     filename_ixingpan = f'{folder_path}/{customer_name}_ixingpan.pickle'
 
     error_msg, birthday, dist, is_dst, toffset, location = prepare_http_data(content=content, name=customer_name)
+    if error_msg != '':
+        return error_msg, None, None
+
+    print(error_msg, birthday, dist)
 
     if USE_CACHE and os.path.exists(filename_ixingpan):
         soup_ixingpan = dump_load_http_result(filename=filename_ixingpan, is_load_mode=True)
@@ -131,6 +135,10 @@ def prepare_http_data(content, name=None) -> Tuple[str, str, str, str, str, str]
 
     province, city, area = parse_location(content)
     birthday = parse_time(content)
+
+    if not province or not city or not area or not birthday:
+        return '解析出生地/生时失败', birthday, '', '', '', ''
+
     error_msg, dist = get_dist_by_location(target_province=province, target_city=city, target_district=area)
 
     # TODO: dynamic
@@ -162,7 +170,7 @@ class Handle():
                 error_msg, soup_ixingpan, soup_almuten = get_basic_soup_from_http(customer_name=fromUser, content=content)
 
                 if error_msg != '':
-                    replyMsg = reply.TextMsg(toUser, fromUser, f'{error_msg}，排盘失败！请重新检查输入...')
+                    replyMsg = reply.TextMsg(toUser, fromUser, f'排盘失败!\n{error_msg}, 请重新检查输入...')
 
                     return replyMsg.send()
 
