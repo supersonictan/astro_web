@@ -163,7 +163,7 @@ class Handle():
 
             recMsg = receive.parse_xml(webData)
 
-            if not isinstance(recMsg, receive.Msg) or recMsg != 'text':
+            if not (isinstance(recMsg, receive.Msg) and recMsg != 'text'):
                 logger.fatal('暂不处理')
                 return 'success'
 
