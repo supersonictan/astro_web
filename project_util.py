@@ -202,7 +202,7 @@ def load_knowledge_file():
     # Load knowledge_web.ini
     config = configparser.ConfigParser()
 
-    file_name = './knowledge_web.ini'
+    file_name = './file/knowledge_web.ini'
     config.read(file_name)
 
     # 遍历指定section的所有option
@@ -642,7 +642,7 @@ def load_jobs_file():
 
                 jobs_star_dict[key] = val
 
-    parse_jobs_star_csv('./jobs.csv')
+    parse_jobs_star_csv(file_path)
     return parsed_data
 
 

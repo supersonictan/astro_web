@@ -17,6 +17,7 @@ import cpca
 import datetime
 import os
 from bs4 import BeautifulSoup
+from project_util import star_dict, house_dict
 from project_util import all_trace_dict
 from project_util import get_dist_by_location
 from project_util import parse_glon_glat
@@ -25,11 +26,14 @@ from project_util import fetch_almuten_soup, fetch_ixingpan_soup
 from project_util import load_knowledge_file, load_knowledge_data_old, load_jobs_file
 from project_util import parse_almuten_star, parse_almuten_house
 from project_util import parse_ixingpan_star, parse_ixingpan_house, parse_ixingpan_aspect
+from basic_analyse import *
 from basic_analyse import get_square, get_house_energy
 from basic_analyse import parse_love, parse_marrage_2, parse_marrage, parse_wealth, parse_health, parse_work, parse_asc_star, parse_study, parse_nature
 
 
 USE_CACHE = True
+IS_DEBUG = False
+
 
 def load_local_file():
     """
@@ -46,7 +50,7 @@ def load_local_file():
 
 
 def get_basic_soup_from_http(customer_name, content) -> Tuple[str, BeautifulSoup, BeautifulSoup]:
-    folder_path = f'../cache/basic/{customer_name}'
+    folder_path = f'./cache/basic/{customer_name}'
     os.makedirs(folder_path, exist_ok=True)
 
     """ ixingpan Http Result. 有 cache 文件则从文件加载，没有走 http 请求 """
@@ -57,7 +61,7 @@ def get_basic_soup_from_http(customer_name, content) -> Tuple[str, BeautifulSoup
         return error_msg, None, None
 
     print(error_msg, birthday, dist)
-    logger.error(birthday,dist)
+    logger.error(f'{birthday}\t{dist}')
 
     if USE_CACHE and os.path.exists(filename_ixingpan):
         soup_ixingpan = dump_load_http_result(filename=filename_ixingpan, is_load_mode=True)
@@ -197,6 +201,13 @@ class Handle():
             get_square()
             get_house_energy()
 
+            if IS_DEBUG:
+                for star, star_obj in star_dict.items():
+                    print(f'{star_obj}')
+
+                for k, v in house_dict.items():
+                    print(f'{v}')
+
             parse_love()
             parse_marrage_2()
             parse_marrage()
@@ -208,6 +219,8 @@ class Handle():
             parse_nature()
 
             ret_vec = []
+            logger.error("~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
 
             key_vec = ['个性显现及生活领域上的重点', '恋爱', '婚姻', '财富', '事业', '健康', '学业', '性格分析']
             for key in key_vec:
@@ -216,7 +229,7 @@ class Handle():
 
                 field_dict = all_trace_dict[key]
 
-                ret_vec.append(f'\n解析「{key}」')
+                ret_vec.append(f'解析「{key}」')
                 # f.writelines(f'\n--------------------------- 解析「{key}」---------------------------')
                 for biz, sub_vec in field_dict.items():
                     ret_vec.append(f'『{biz}』:')
@@ -227,9 +240,13 @@ class Handle():
                         # f.writelines(f'{index}、{sub}\n')
                         ret_vec.append(f'{index}、{sub}')
 
-                replyMsg = reply.TextMsg(toUser, fromUser, '\n'.join(ret_vec))
+            logger.error(f'ret_vec len is:{len(ret_vec)}')
+            reply_str = ','.join(ret_vec)
+            reply_str = reply_str[:530]
+            # replyMsg = reply.TextMsg(toUser, fromUser, reply_str)
+            replyMsg = reply.TextMsg(toUser, fromUser, reply_str)
 
-                return replyMsg.send()
+            return replyMsg.send()
 
         except Exception as Argument:
             print(Argument)

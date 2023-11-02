@@ -97,8 +97,8 @@ def get_house_energy():
         house_debug_vec.insert(0, msg_tmp)
         debug_vec.append(house_debug_vec)
 
-    for sub_vec in debug_vec:
-        print('\n'.join(sub_vec))
+    # for sub_vec in debug_vec:
+    #     print('\n'.join(sub_vec))
 
 
 def get_star_square_info(star: str) -> Tuple[List[str], List[str], str]:
