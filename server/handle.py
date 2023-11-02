@@ -57,6 +57,7 @@ def get_basic_soup_from_http(customer_name, content) -> Tuple[str, BeautifulSoup
         return error_msg, None, None
 
     print(error_msg, birthday, dist)
+    logger.error(birthday,dist)
 
     if USE_CACHE and os.path.exists(filename_ixingpan):
         soup_ixingpan = dump_load_http_result(filename=filename_ixingpan, is_load_mode=True)

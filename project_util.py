@@ -572,7 +572,7 @@ class HSys(Enum):
 
 
 def load_knowledge_data_old():
-    with open('./knowledge.csv', 'r') as f:
+    with open('./file/knowledge.csv', 'r') as f:
         for line in f.readlines():
             line = line.strip()
             key = line.split(',')[0]
@@ -616,7 +616,7 @@ def load_jobs_file():
         # return jobs_dict
 
     # 调用函数解析 "jobs.csv" 文件
-    file_path = './jobs.csv'
+    file_path = './file/jobs.csv'
     parsed_data = parse_jobs_csv(file_path)
 
     # 解析工作星性
