@@ -16,6 +16,6 @@ else
     echo "服务尚未启动,已直接启动服务..."
 fi
 
-nohup python ./web/run_web.py 80 stdout.log 2>&1 &
+nohup python ./server/run_web.py 80 stdout.log 2>&1 &
 pid=$!
 echo "服务已启动，进程ID为 $pid"
