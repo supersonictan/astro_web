@@ -4,9 +4,9 @@ from typing import Tuple
 import requests
 from enum import Enum
 from bs4 import BeautifulSoup
-from project_util import Aspect, Star, House
-from project_util import *
-from project_util import marriage_trace_dict
+from util import Aspect, Star, House
+from util import *
+from util import marriage_trace_dict
 
 
 def get_house_energy():
