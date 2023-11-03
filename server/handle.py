@@ -32,7 +32,7 @@ from basic_analyse import parse_love, parse_marrage_2, parse_marrage, parse_weal
 
 
 USE_CACHE = True
-IS_DEBUG = False
+IS_DEBUG = True
 
 
 def load_local_file():
@@ -213,6 +213,7 @@ class Handle():
             parse_marrage()
             parse_wealth()
             parse_health()
+            print('----------------------------')
             parse_work()
             parse_asc_star()
             parse_study()
@@ -240,9 +241,9 @@ class Handle():
                         # f.writelines(f'{index}、{sub}\n')
                         ret_vec.append(f'{index}、{sub}')
 
-            logger.error(f'ret_vec len is:{len(ret_vec)}')
+            print(f'ret_vec len is:{len(ret_vec)}')
             reply_str = ','.join(ret_vec)
-            reply_str = reply_str[:530]
+            reply_str = reply_str[:230]
             # replyMsg = reply.TextMsg(toUser, fromUser, reply_str)
             replyMsg = reply.TextMsg(toUser, fromUser, reply_str)
 
