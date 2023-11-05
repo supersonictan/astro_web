@@ -567,17 +567,6 @@ def parse_health():
 
 
 
-def parse_asc_star():
-    # 解析命主星落宫
-    asc_star = house_dict[1].ruler
-    asc_house = star_dict[asc_star].house
-
-    key = f'命主星{asc_house}宫'
-    desc = knowledge_dict['命主星落宫'][key]
-    asc_trace_dict['重点概括'] = [f'【{key}】{desc}']
-
-    all_trace_dict['个性显现及生活领域上的重点'] = asc_trace_dict
-
 
 def parse_study():
     # 解析：初等学业、高等学业

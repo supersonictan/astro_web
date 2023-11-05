@@ -121,6 +121,7 @@ def basic_analyse(customer_name, content) -> Tuple[str, str]:
 
     get_square()
 
+    parse_asc_star()
     parse_love()
     parse_marrage_2()
     parse_marrage()
@@ -135,7 +136,7 @@ def basic_analyse(customer_name, content) -> Tuple[str, str]:
     # parse_health()
     # print('----------------------------')
 
-    # parse_asc_star()
+
     # parse_study()
     # parse_nature()
     #
@@ -160,6 +161,24 @@ def basic_analyse(customer_name, content) -> Tuple[str, str]:
     #             # print(f'{index}、{sub}')
     #             # f.writelines(f'{index}、{sub}\n')
     #             ret_vec.append(f'{index}、{sub}')
+
+
+def parse_asc_star():
+    is_debug = web.ctx.env['is_debug']
+    star_dict = web.ctx.env["star_dict"]
+    house_dict = web.ctx.env["house_dict"]
+    knowledge_dict = web.ctx.env['knowledge_dict']
+
+    # 解析命主星落宫
+    asc_star = house_dict[1].ruler
+    asc_house = star_dict[asc_star].house
+
+    key = f'命主星{asc_house}宫'
+    desc = knowledge_dict['命主星落宫'][key]
+
+    reason_debug = f'【{key}】' if is_debug else ''
+
+    set_trace_info('解析上升', '重点概括', [f'{reason_debug}{desc}'])
 
 
 def parse_work():
@@ -198,7 +217,8 @@ def parse_work():
         reason_debug = f'【{search_key}】' if is_debug else ''
         sub_vec.append(f'{reason_debug}{val}')
 
-    set_trace_info('事业', '二档适合的职业', sub_vec)
+    if len(sub_vec) > 0:
+        set_trace_info('事业', '二档适合的职业', sub_vec)
 
 
 def parse_marrage():
@@ -317,7 +337,7 @@ def parse_marrage():
 
     trace_divorce_vec = [item for item in trace_divorce_vec if item != '']
     if len(trace_divorce_vec) == 0:
-        trace_divorce_vec.append(['0'])
+        trace_divorce_vec.append('0')
     set_trace_info('婚姻', '未来离婚概率', trace_divorce_vec)
 
     '''
