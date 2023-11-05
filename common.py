@@ -167,18 +167,22 @@ def parse_asc_star():
     is_debug = web.ctx.env['is_debug']
     star_dict = web.ctx.env["star_dict"]
     house_dict = web.ctx.env["house_dict"]
+    logger.debug('111111111111111111111111')
     knowledge_dict = web.ctx.env['knowledge_dict']
+    logger.debug('1222222222222222222222222')
 
     # 解析命主星落宫
     asc_star = house_dict[1].ruler
     asc_house = star_dict[asc_star].house
 
     key = f'命主星{asc_house}宫'
+    logger.debug(key)
     desc = knowledge_dict['命主星落宫'][key]
+    logger.debug('3333333333333333333333333')
 
     reason_debug = f'【{key}】' if is_debug else ''
 
-    set_trace_info('解析上升', '重点概括', [f'{reason_debug}{desc}'])
+    set_trace_info('上升点', '重点概括', [f'{reason_debug}{desc}'])
 
 
 def parse_work():
@@ -573,6 +577,9 @@ def parse_marrage_2():
 
 
 def set_trace_info(key, sub_key, msg_vec):
+    if key not in web.ctx.env['trace_info']:
+        logger.error(f'{key} not in web.ctx.env.trace_info...')
+
     web.ctx.env['trace_info'][key][sub_key] = msg_vec
 
 

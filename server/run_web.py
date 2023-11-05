@@ -63,7 +63,7 @@ class Handle():
                 replyMsg = reply.TextMsg(toUser, fromUser, f'【排盘失败】\n{err}, 请重新检查输入...')
                 return replyMsg.send()
 
-            # DEBUG
+            # DEBUGtrace_info
             for k, v in web.ctx.env.items():
                 if k in DEBUG_BLACK_SET:
                     continue
@@ -91,6 +91,9 @@ class Handle():
             report = []
             domain_vec = ['恋爱', '婚姻', '事业']
             for target in domain_vec:
+                if target not in web.ctx.env['trace_info']:
+                    logger.error(f'{target} not in web.ctx.env.trace_info')
+
                 field_dict = web.ctx.env['trace_info'][target]
                 if len(report) != 0:
                     report.append('\n')
@@ -163,12 +166,13 @@ def init_context():
     love_trace_dict: Dict[str, List[str]] = {}
     marriage_trace_dict: Dict[str, List[str]] = {}
     work_trace_dict: Dict[str, List[str]] = {}
+    asc_trace_dict: Dict[str, List[str]] = {}
 
     all_trace_dict['灾星系统'] = disaster_trace_dict
     all_trace_dict['恋爱'] = love_trace_dict
     all_trace_dict['婚姻'] = marriage_trace_dict
     all_trace_dict['事业'] = work_trace_dict
-
+    all_trace_dict['上升点'] = asc_trace_dict 
 
 
     web.ctx.env['trace_info'] = all_trace_dict
@@ -177,7 +181,6 @@ def init_context():
 
     wealth_trace_dict: Dict[str, List[str]] = {}
     health_trace_dict: Dict[str, List[str]] = {}
-    asc_trace_dict: Dict[str, List[str]] = {}
     study_trace_dict: Dict[str, List[str]] = {}
     nature_trace_dict: Dict[str, List[str]] = {}
 
