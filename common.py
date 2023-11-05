@@ -124,6 +124,7 @@ def basic_analyse(customer_name, content) -> Tuple[str, str]:
     parse_love()
     parse_marrage_2()
     parse_marrage()
+    parse_work()
 
     return error_msg, None
     # get_house_energy()
@@ -133,7 +134,7 @@ def basic_analyse(customer_name, content) -> Tuple[str, str]:
     # parse_wealth()
     # parse_health()
     # print('----------------------------')
-    # parse_work()
+
     # parse_asc_star()
     # parse_study()
     # parse_nature()
@@ -159,6 +160,42 @@ def basic_analyse(customer_name, content) -> Tuple[str, str]:
     #             # print(f'{index}、{sub}')
     #             # f.writelines(f'{index}、{sub}\n')
     #             ret_vec.append(f'{index}、{sub}')
+
+
+def parse_work():
+    # 10r 飞宫
+
+    """
+    10宫飞1宫
+    关键词：自我价值实现
+    职业：运动员、主持人、模特、销售、自由职业、创业
+    """
+    is_debug = web.ctx.env['is_debug']
+    star_dict = web.ctx.env["star_dict"]
+    house_dict = web.ctx.env["house_dict"]
+    jobs_dict = web.ctx.env['knowledge_dict']['职业-飞星']
+    jobs_star_dict = web.ctx.env['knowledge_dict']['职业-星性']
+
+    # 获取10r飞宫
+    ruler10 = house_dict[10].ruler
+    ruler10_loc = star_dict[ruler10].house
+
+    key = f'10宫飞{ruler10_loc}宫'
+    work_keyword = jobs_dict[key][0]
+    work_job = jobs_dict[key][1]
+    # work_trace_dict['事业关键词'] = [f'【{key}】{work_keyword}']
+    reason_debug = f'【{key}】' if is_debug else ''
+    set_trace_info('事业', '一档适合的职业', [f'{reason_debug}{work_job}'])
+
+    sub_vec = []
+    for loc_star in house_dict[10].loc_star:
+        search_key = f'{loc_star}10宫'
+        val = jobs_star_dict[search_key]
+
+        reason_debug = f'【{search_key}】' if is_debug else ''
+        sub_vec.append(f'{reason_debug}{val}')
+
+    set_trace_info('事业', '二档适合的职业', sub_vec)
 
 
 def parse_marrage():
@@ -275,6 +312,9 @@ def parse_marrage():
     if msg_neptune != '':
         trace_divorce_vec.append(msg_neptune)
 
+    trace_divorce_vec = [item for item in trace_divorce_vec if item != '']
+    if len(trace_divorce_vec) == 0:
+        trace_divorce_vec.append(['0'])
     set_trace_info('婚姻', '未来离婚概率', trace_divorce_vec)
 
     '''
@@ -309,7 +349,7 @@ def parse_marrage():
     # trace_affair_vec.append(f'需要check下「互溶、接纳」再来确定！7r:{ruler_7}，11r:{ruler_11}, 12r:{ruler_12}')
 
     if len(trace_affair_vec) == 0:
-        trace_affair_vec.append('应该不会离婚.')
+        trace_affair_vec.append('新盘显示不会离婚.')
 
     set_trace_info('婚姻', '未来配偶有外遇的概率', trace_affair_vec)
 

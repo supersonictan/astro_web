@@ -94,14 +94,18 @@ class Handle():
                 field_dict = web.ctx.env['trace_info'][target]
                 if len(report) != 0:
                     report.append('\n')
-                report.append(f'{target}:')
+                report.append(f'『解析{target}』')
 
                 idx = -1
                 no_vec = ['一', '二', '三', '四', '五', '六', '七', '八']
                 for biz, sub_vec in field_dict.items():
                     idx += 1
 
-                    sub_vec_with_numbers = [f"{i + 1}、{item}" for i, item in enumerate(sub_vec)]
+                    if len(sub_vec) > 1:
+                        sub_vec_with_numbers = [f"{i + 1}、{item}" for i, item in enumerate(sub_vec)]
+                    else:
+                        sub_vec_with_numbers = [f"{item}" for i, item in enumerate(sub_vec)]
+
                     msg = '\n'.join(sub_vec_with_numbers)
                     report.append(f'\n{no_vec[idx]}、{biz}: {msg}')
 
@@ -158,10 +162,12 @@ def init_context():
     disaster_trace_dict: Dict[str, List[str]] = {}
     love_trace_dict: Dict[str, List[str]] = {}
     marriage_trace_dict: Dict[str, List[str]] = {}
+    work_trace_dict: Dict[str, List[str]] = {}
 
     all_trace_dict['灾星系统'] = disaster_trace_dict
     all_trace_dict['恋爱'] = love_trace_dict
     all_trace_dict['婚姻'] = marriage_trace_dict
+    all_trace_dict['事业'] = work_trace_dict
 
 
 
@@ -171,7 +177,6 @@ def init_context():
 
     wealth_trace_dict: Dict[str, List[str]] = {}
     health_trace_dict: Dict[str, List[str]] = {}
-    work_trace_dict: Dict[str, List[str]] = {}
     asc_trace_dict: Dict[str, List[str]] = {}
     study_trace_dict: Dict[str, List[str]] = {}
     nature_trace_dict: Dict[str, List[str]] = {}

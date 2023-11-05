@@ -567,36 +567,6 @@ def parse_health():
 
 
 
-def parse_work():
-    # 10r 飞宫
-
-    """
-    10宫飞1宫
-    关键词：自我价值实现
-    职业：运动员、主持人、模特、销售、自由职业、创业
-    """
-
-    # 获取10r飞宫
-    ruler10 = house_dict[10].ruler
-    ruler10_loc = star_dict[ruler10].house
-
-    key = f'10宫飞{ruler10_loc}宫'
-    work_keyword = jobs_dict[key][0]
-    work_job = jobs_dict[key][1]
-    work_trace_dict['事业关键词'] = [f'【{key}】{work_keyword}']
-    work_trace_dict['一档适合的职业'] = [f'【{key}】{work_job}']
-
-    sub_vec = []
-    for loc_star in house_dict[10].loc_star:
-        search_key = f'{loc_star}10宫'
-        val = jobs_star_dict[search_key]
-        sub_vec.append(f'【{search_key}】{val}')
-
-    work_trace_dict['二档适合的职业'] = sub_vec
-
-    all_trace_dict['事业'] = work_trace_dict
-
-
 def parse_asc_star():
     # 解析命主星落宫
     asc_star = house_dict[1].ruler
