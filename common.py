@@ -112,29 +112,24 @@ def basic_analyse(customer_name, content) -> Tuple[str, str]:
         return error_msg, None
 
     # 解析宫神星网结果
-    logger.debug('before _parse_almuten_star......')
     _parse_almuten_star(soup_almuten)
 
     # 解析爱星盘结果
-    logger.debug('before _parse_ixingpan_star......')
     _parse_ixingpan_star(soup_ixingpan)
-
-    logger.debug('before _parse_ixingpan_house......')
     _parse_ixingpan_house(soup_ixingpan)
-    logger.debug('before _parse_ixingpan_aspect......')
     _parse_ixingpan_aspect(soup_ixingpan)
 
     get_square()
 
     parse_love()
     parse_marrage_2()
+    parse_marrage()
 
     return error_msg, None
     # get_house_energy()
 
 
 
-    # parse_marrage()
     # parse_wealth()
     # parse_health()
     # print('----------------------------')
@@ -164,6 +159,193 @@ def basic_analyse(customer_name, content) -> Tuple[str, str]:
     #             # print(f'{index}、{sub}')
     #             # f.writelines(f'{index}、{sub}\n')
     #             ret_vec.append(f'{index}、{sub}')
+
+
+def parse_marrage():
+    """1. 配偶是什么类型？观测7宫的宫内星和宫主星，星性可代表特征、类型。"""
+    appearance_dict = {'太阳': '长相属于大气的类型，个子也会偏高，积极向上，并且是充满了自信。',
+                       '月亮': '整体形象方面会偏向肉肉的感觉，身高中等，性格温柔体贴，懂得照顾另一半，顾家的类型，和另一半有情绪上的共鸣。',
+                       '水星': '另一半会显得比较年轻，头脑灵活又聪明，有灵气。在沟通方面会给你不错的体验感，好像彼此有聊不完的话题，是有趣的一类人。',
+                       '金星': '颜值会不错，气质与亲和力也很好。会注重另一半的外在形象，有较好的社交能力，双方相处也会感到和谐甜蜜。',
+                       '火星': '精力充沛活泼类型，会喜欢运动，浑身带有力量和冲劲。另一半是相对外向性格，热情积极坦率，彼此能够相互促进，哪怕有争吵也是越吵越好',
+                       '木星': '身材偏高大，性格上也是爽朗豁达，性格乐观且具有奉献精神，也是博闻广识的一类人，也有可能异地。',
+                       '土星': '另一半整体气质是沉稳的，显得比较内敛，显得比较稳重可靠务实。懂得规划生活，对方有责任心和担当。'}
+    ruler_7 = house_dict[7].ruler
+
+    trace_vec_appearance = []
+    msg = f'【7r={ruler_7}】{appearance_dict[ruler_7]}'
+    trace_vec_appearance.append(msg)
+
+    for star_name in house_dict[7].loc_star:
+        if star_name in {'冥王', '天王', '海王', '北交'}:
+            continue
+        trace_vec_appearance.append(f'【7宫内{star_name}】{appearance_dict[star_name]}')
+
+    marriage_trace_dict['配偶是什么类型的'] = trace_vec_appearance
+
+    '''
+    黄道状态是否良好（分数的高低）代表配偶自身的能力or先天健康
+    7飞去的宫位，代表了配們追逐or重视的领域，例如：7飞10.
+    代表『伴信有事业心•追求建功动业，社会地位，或省一分注重樂省价子等
+    TODO：替换受克，得吉
+    '''
+    ruler_7_house = star_dict[ruler_7].house
+    search_key = f'7飞{ruler_7_house}'
+    knowledge_msg = f'【{search_key}】{knowledge_dict_old[search_key]}'
+    marriage_trace_dict['配偶特点'] = [knowledge_msg]
+
+    '''
+    2. 配偶什么年纪？
+    - 木星土星主大5-7岁
+    - 日月主大3-5岁
+    - 金水火主上下三岁
+    - 甚至偏小，但是同时要参专盘主的命主星，比大小；
+    - 7宫多星时可尝试叠加
+    '''
+    marriage_age_dict = {'木星': '比你大5~7岁', '土星': '比你大5~7岁',
+                         '太阳': '比你大3~5岁', '月亮':'比你大3~5岁',
+                         '金星': '与你同龄，上下3岁左右', '水星': '与你同龄，上下3岁左右', '火星': '与你同龄，上下3岁左右'}
+    trace_age_vec = [f'【7r={ruler_7}】配偶{marriage_age_dict[ruler_7]}']
+    for star_name in house_dict[7].loc_star:
+        if star_name in {'冥王', '天王', '海王', '北交'}:
+            continue
+        trace_age_vec.append(f'【7宫内{star_name}】配偶{marriage_age_dict[star_name]}')
+
+    marriage_trace_dict['配偶年龄'] = trace_age_vec
+
+    '''
+    3. 会不会离婚
+    传统说，我们不喜欢太多的星进入婚姻宮，尤其是三王星，
+    - 冥王，代表离异 or 复婚。
+    - 天王，代表聚少离多 or 离异 or 不寻常的、有违世俗的婚姻。
+    - 海王，一般多婚，或婚姻纠缠不清
+    - 土星，年龄大，压力大
+    - 1r-7r 对冲，轴线也算，无论是宫内星对冲，还是飞出去对冲，都代表大妻矛店大，容易不相让。
+    - 1r-7r 黃道分数相差过大，也容易阴阳失衡，
+    - 有时候日月相差过大也会有这种阴阳失调的问题
+    - 7r 被克，被任何星体沖，都不理想：
+    - 凶星（土火三王）5度以内，压上升轴or 下降轴，都会特别发凶，影响感情和决策。
+    '''
+    is_pluto_7 = 1 if '冥王' in house_dict[7].loc_star else 0
+    is_uranus_7 = 1 if '天王' in house_dict[7].loc_star else 0
+    is_neptune_7 = 1 if '海王' in house_dict[7].loc_star else 0
+    is_1r_7r_bad = 0
+    is_1r_7r_score_diff = 0
+
+    ruler_1 = house_dict[1].ruler
+
+    r1_aspect_vec = list(star_dict[ruler_1].aspect_dict.values())
+    for obj in r1_aspect_vec:
+        if ruler_7 == obj.star_b and obj.aspect in {'刑', '冲'}:
+            is_1r_7r_bad = 1
+            break
+
+    score_7r = star_dict[ruler_7].score
+    score_1r = star_dict[ruler_1].score
+    is_1r_7r_score_diff = abs(int(score_1r) - int(score_7r))
+
+    # 下降相位
+    axis_vec = []
+    for _, obj in star_dict['下降'].aspect_dict.items():
+        if obj.aspect != '合':
+            continue
+
+        if obj.star_b in {'冥王', '天王', '海王', '土星', '火星'}:
+            axis_vec.append(f'{obj.star_b}合下降轴,特别发凶,影响感情和决策')
+
+
+    trace_divorce_vec = []
+    trace_divorce_vec.append(f'【冥王代表离异or复婚】盘主冥王落7宫={is_pluto_7}')
+    trace_divorce_vec.append(f'【天王代表<聚少离多>或<离异>或<不寻常的、有违世俗的婚姻>】盘主天王落7宫={is_uranus_7}')
+    trace_divorce_vec.append(f'【海王一般多婚，或婚姻纠缠不清】盘主海王落7宫={is_neptune_7}')
+    trace_divorce_vec.append(f'【7r、1r对冲】={is_1r_7r_bad}')
+    trace_divorce_vec.append(f'【7r、1r分差过大】分差={is_1r_7r_score_diff}，7r：{score_7r}，1r：{score_1r}')
+    if len(axis_vec) != 0:
+        trace_divorce_vec.extend(axis_vec)
+    else:
+        trace_divorce_vec.append('未检测到凶星压下降轴！！凶星（土火三王）5度以内，压上升轴or 下降轴，都会特别发凶，影响感情和决策')
+
+    marriage_trace_dict['未来离婚概率'] = trace_divorce_vec
+
+    '''
+    4. 配偶是否有外遇？
+    7-11, 7-11-12， 7-12，一般来说，看到这个配置，我们可以断定盘主配偈的桃花非常的旺盛，
+    但是在实际论盘中，需要考虑飞星和接纳的因素，飞星和接纳都是有方向的
+    因此通过这个可以断定，是桃花主动来找这个人的配個，还是配偶主动去找桃花，互容真的相互的。
+    从这个层面来给客户建议：7-11-1 的黄道状态来判定三人之间的实力。
+    '''
+    trace_affair_vec = []
+    if search_key == '7飞11':
+        trace_affair_vec.append(f'【{search_key}】可能配偶去找桃花。{knowledge_dict_old[search_key]}')
+    else:
+        trace_affair_vec.append(f'未检测到！！{search_key}: 可能配偶去找桃花。')
+
+    # 是否有11飞7，7飞12
+    ruler_11, ruler_12 = house_dict[11].ruler, house_dict[12].ruler
+    ruler_11_loc, ruler_12_loc = star_dict[ruler_11].house, star_dict[ruler_12].house
+    tmp_key = '11飞7'
+    if ruler_11_loc == 7:
+        trace_affair_vec.append(f'【{tmp_key}】可能有桃花来找配偶。{knowledge_dict_old[tmp_key]}')
+    else:
+        trace_affair_vec.append(f'未检测到！！{tmp_key}: 可能有桃花来找配偶。')
+
+    tmp_key = '12飞7'
+    if ruler_12_loc == 7:
+        trace_affair_vec.append(f'【{tmp_key}】可能有桃花来找配偶。{knowledge_dict_old[tmp_key]}')
+    else:
+        trace_affair_vec.append(f'未检测到！！{tmp_key}: 可能有桃花来找配偶。')
+
+    trace_affair_vec.append(f'需要check下「互溶、接纳」再来确定！7r:{ruler_7}，11r:{ruler_11}, 12r:{ruler_12}')
+
+    marriage_trace_dict['未来配偶有外遇的概率'] = trace_affair_vec
+
+    '''
+    5. 婚姻/配偶能否给自己带财？
+    - 1r2r 得7r接纳，或者 1r2r 与7互容时候，婚姻可带财。
+    - 7r 飞 1r2r 也会有类似作用，但是能量低些，且最好 7r庙旺。
+    - 如若 7r接纳互容5r，说明有了孩子，伴侣会给孩子钱
+    :return:
+    '''
+    trace_money_vec = []
+
+    ruler_2 = house_dict[2].ruler
+
+    msg = f'未检测到！！1r={ruler_1}被7r={ruler_7}接纳！'
+    if ruler_7 in star_dict[ruler_1].recepted_dict:
+        msg = f'1r{ruler_1}被7r{ruler_7}{star_dict[ruler_1].recepted_dict[ruler_7].action_name}，可利财！'
+
+    trace_money_vec.append(msg)
+
+    msg = f'未检测到！！2r{ruler_2}被7r{ruler_7}接纳！'
+    if ruler_7 in star_dict[ruler_2].recepted_dict:
+        msg = f'2r{ruler_2}被7r{ruler_7}{star_dict[ruler_2].recepted_dict[ruler_7].action_name}，可利财！'
+
+    trace_money_vec.append(msg)
+
+    msg = f'未检测到！！7r{ruler_7}与1、2r互容！'
+    for key, obj in star_dict[ruler_7].recepted_dict.items():
+        if '互容' not in obj.action_name:
+            continue
+
+        if obj.star_b == ruler_1:
+            msg = f'7r{ruler_7}与1r{ruler_1}{obj.action_name}，可利财！'
+            trace_money_vec.append(msg)
+
+        if obj.star_b == ruler_2:
+            msg = f'7r{ruler_7}与2r{ruler_2}{obj.action_name}，可利财！'
+            trace_money_vec.append(msg)
+
+    if msg == f'未检测到！！7r{ruler_7}与1、2宫主互容！':
+        trace_money_vec.append(msg)
+
+    # 看7r是否飞1、2
+    is_7r_loc1 = 1 if star_dict[ruler_7].house == 1 else 0
+    is_7r_loc2 = 1 if star_dict[ruler_7].house == 2 else 0
+    trace_money_vec.append(f'7飞1={is_7r_loc1}, 7飞2={is_7r_loc2}, 7r score={score_7r}')
+
+    marriage_trace_dict['婚姻/配偶能否给自己带财?'] = trace_money_vec
+
+    all_trace_dict['婚姻'] = marriage_trace_dict
 
 
 
@@ -292,18 +474,22 @@ def parse_marrage_2():
     is_debug = web.ctx.env['is_debug']
     star_dict = web.ctx.env["star_dict"]
     house_dict = web.ctx.env["house_dict"]
-    marriage_trace_dict = web.ctx.env['婚姻']
 
     # 婚神星落宫
     love_star_house = star_dict['婚神'].house
     key = f'婚神{love_star_house}宫'
-    logger.debug(key)
 
     knowledge_dict = web.ctx.env['knowledge_dict']
     desc = knowledge_dict['婚神星落宫'][key]
+    logger.debug(desc)
 
     reason = f'【{key}】' if is_debug else ''
-    web.ctx.env['婚姻']['婚神星表现'] = [f'{reason}{desc}']
+    set_trace_info('婚姻', '整体', [f'{reason}{desc}'])
+    # web.ctx.env[]['婚姻']['婚神星表现'] = [f'{reason}{desc}']
+
+
+def set_trace_info(key, sub_key, msg_vec):
+    web.ctx.env['trace_info'][key][sub_key] = msg_vec
 
 
 
@@ -896,5 +1082,4 @@ def get_square():
 
     web.ctx.env['trace_info']['灾星系统']['盘主灾星信息'] = trace_square_vec
 
-    logger.debug('after trace_square_vec....')
 

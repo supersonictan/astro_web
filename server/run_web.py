@@ -92,7 +92,9 @@ class Handle():
             domain_vec = ['恋爱', '婚姻']
             for target in domain_vec:
                 field_dict = web.ctx.env['trace_info'][target]
-                report.append('恋爱:')
+                if len(report) != 0:
+                    report.append('\n')
+                report.append(f'{target}:')
 
                 idx = -1
                 no_vec = ['一', '二', '三', '四', '五', '六', '七', '八']
