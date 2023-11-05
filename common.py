@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import Dict, List, Tuple
+import web
 import json
 import datetime
 import os
@@ -109,58 +110,56 @@ def basic_analyse(customer_name, content) -> Tuple[str, str]:
     if error_msg != '':
         return error_msg, None
 
-    # 加载知识库
-    # knowledge_dict, knowledge_dict_old, jobs_dict, jobs_star_dict = _load_local_file()
+    # 解析宫神星网结果
     _parse_almuten_star(soup_almuten)
-    parse_almuten_house()
 
     # 解析爱星盘结果
-    parse_ixingpan_star(soup_ixingpan)
-    parse_ixingpan_house(soup_ixingpan)
-    parse_ixingpan_aspect(soup_ixingpan)
+    _parse_ixingpan_star(soup_ixingpan)
+    _parse_ixingpan_house(soup_ixingpan)
+    _parse_ixingpan_aspect(soup_ixingpan)
 
     get_square()
-    get_house_energy()
+    # get_house_energy()
 
-    if IS_DEBUG:
-        for star, star_obj in star_dict.items():
-            print(f'{star_obj}')
+    # if IS_DEBUG:
+    #     for star, star_obj in star_dict.items():
+    #         print(f'{star_obj}')
+    #
+    #     for k, v in house_dict.items():
+    #         print(f'{v}')
 
-        for k, v in house_dict.items():
-            print(f'{v}')
-
-    parse_love()
-    parse_marrage_2()
-    parse_marrage()
-    parse_wealth()
-    parse_health()
-    print('----------------------------')
-    parse_work()
-    parse_asc_star()
-    parse_study()
-    parse_nature()
-
-    ret_vec = []
-    logger.error("~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-
-    key_vec = ['个性显现及生活领域上的重点', '恋爱', '婚姻', '财富', '事业', '健康', '学业', '性格分析']
-    for key in key_vec:
-        if key not in all_trace_dict:
-            continue
-
-        field_dict = all_trace_dict[key]
-
-        ret_vec.append(f'解析「{key}」')
-        # f.writelines(f'\n--------------------------- 解析「{key}」---------------------------')
-        for biz, sub_vec in field_dict.items():
-            ret_vec.append(f'『{biz}』:')
-            # f.writelines(f'\n『{biz}』:\n')
-            # print(f'\n『{biz}』:')
-            for index, sub in enumerate(sub_vec, start=1):
-                # print(f'{index}、{sub}')
-                # f.writelines(f'{index}、{sub}\n')
-                ret_vec.append(f'{index}、{sub}')
+    # parse_love()
+    # parse_marrage_2()
+    # parse_marrage()
+    # parse_wealth()
+    # parse_health()
+    # print('----------------------------')
+    # parse_work()
+    # parse_asc_star()
+    # parse_study()
+    # parse_nature()
+    #
+    # ret_vec = []
+    # logger.error("~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    # print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+    #
+    # key_vec = ['个性显现及生活领域上的重点', '恋爱', '婚姻', '财富', '事业', '健康', '学业', '性格分析']
+    # for key in key_vec:
+    #     if key not in all_trace_dict:
+    #         continue
+    #
+    #     field_dict = all_trace_dict[key]
+    #
+    #     ret_vec.append(f'解析「{key}」')
+    #     # f.writelines(f'\n--------------------------- 解析「{key}」---------------------------')
+    #     for biz, sub_vec in field_dict.items():
+    #         ret_vec.append(f'『{biz}』:')
+    #         # f.writelines(f'\n『{biz}』:\n')
+    #         # print(f'\n『{biz}』:')
+    #         for index, sub in enumerate(sub_vec, start=1):
+    #             # print(f'{index}、{sub}')
+    #             # f.writelines(f'{index}、{sub}\n')
+    #             ret_vec.append(f'{index}、{sub}')
 
 
 def _get_basic_soup_from_http(customer_name, content) -> Tuple[str, BeautifulSoup, BeautifulSoup]:
@@ -463,118 +462,6 @@ def _fetch_almuten_soup(data):
     return soup
 
 
-def _load_local_file():
-    """
-    knowledge_web.ini
-    knowledge.csv
-    jobs.csv
-    ixingpan_area.json
-
-    :return:
-    """
-    knowledge_dict: Dict[str, Dict[str, str]] = {}
-    knowledge_dict_old: Dict[str, str] = {}
-    jobs_dict: Dict[str, Tuple[str, str]] = {}
-    jobs_star_dict: Dict[str, str] = {}
-
-    def _load_knowledge_file():
-        # Load knowledge_web.ini
-        config = configparser.ConfigParser()
-
-        file_name = './file/knowledge_web.ini'
-        config.read(file_name)
-
-        # 遍历指定section的所有option
-        for section_name in config.sections():
-
-            for option_name in config.options(section_name):
-                value = config.get(section_name, option_name)
-
-                if section_name in knowledge_dict:
-                    knowledge_dict[section_name][option_name] = value
-                else:
-                    knowledge_dict[section_name] = {option_name: value}
-
-    def _load_knowledge_data_old():
-        with open('./file/knowledge.csv', 'r') as f:
-            for line in f.readlines():
-                line = line.strip()
-                key = line.split(',')[0]
-                val = line.split(',')[1]
-                knowledge_dict_old[key] = val
-
-    def _load_jobs_file():
-        def parse_jobs_csv(file_path):
-            # jobs_dict = {}
-            with open(file_path, 'r') as file:
-                lines = file.readlines()
-                i = 0
-
-                key, keywords, job = '', '', ''
-
-                for line in lines:
-                    line = line.strip()
-                    if line == '':
-                        continue
-
-                    if line == '「星性」':
-                        break
-
-                    if i == 0:
-                        key = line
-                        i += 1
-                    elif i == 1:
-                        keywords = line
-                        i += 1
-                    elif i == 2:
-                        job = line
-                        i += 1
-
-                    if i > 2:
-                        i = 0
-
-                        jobs_dict[key] = (keywords, job)
-                        key, keywords, job = '', '', ''
-
-            # return jobs_dict
-
-        # 调用函数解析 "jobs.csv" 文件
-        file_path = './file/jobs.csv'
-        parsed_data = parse_jobs_csv(file_path)
-
-        # 解析工作星性
-        def parse_jobs_star_csv(file_path):
-            flag = False
-            with open(file_path, 'r') as file:
-                lines = file.readlines()
-                for line in lines:
-                    line = line.strip()
-                    if line == '':
-                        continue
-
-                    if line == '「星性」':
-                        flag = True
-                        continue
-
-                    if not flag:
-                        continue
-
-                    # print(line)
-                    key = line.split('：')[0]
-                    val = line.split('：')[1]
-
-                    jobs_star_dict[key] = val
-
-        parse_jobs_star_csv(file_path)
-        return parsed_data
-
-    _load_knowledge_file()
-    _load_knowledge_data_old()
-    _load_jobs_file()
-
-    return knowledge_dict, knowledge_dict_old, jobs_dict, jobs_star_dict
-
-
 def _parse_almuten_star(soup):
     tables = soup.find_all('table')
 
@@ -629,11 +516,7 @@ def _parse_almuten_star(soup):
         if star in ['上升', '中天']:
             continue
 
-        star_dict[star] = star_obj
-
-        # print(star_obj)
-
-    # print('------------------ End star_obj ------------------')
+        web.ctx.env['star_dict'][star] = star_obj
 
     # 解析互溶接纳
     table_feature = tables[2]
@@ -664,11 +547,206 @@ def _parse_almuten_star(soup):
         star_a, star_b = almuten_star_sign_mapping[td.find_all('em')[0].text], almuten_star_sign_mapping[td.find_all('em')[1].text]
 
         r = Recepted(star_a=star_a, star_b=star_b, action_name=feature, level=matches[-1])
-        # star_dict[star_a].recepted_vec_old.append(r)
 
         # 互溶接纳、接纳只保留互溶接纳
-        if star_b in star_dict[star_a].recepted_dict and star_dict[star_a].recepted_dict[star_b].action_name == '接纳' and feature == '互容接纳':
-            star_dict[star_a].recepted_dict[star_b] = r
-        elif star_b not in star_dict[star_a].recepted_dict:
-            star_dict[star_a].recepted_dict[star_b] = r
+        if star_b in web.ctx.env['star_dict'][star_a].recepted_dict and \
+                web.ctx.env['star_dict'][star_a].recepted_dict[star_b].action_name == '接纳' and feature == '互容接纳':
+            web.ctx.env['star_dict'][star_a].recepted_dict[star_b] = r
+        elif star_b not in web.ctx.env['star_dict'][star_a].recepted_dict:
+            web.ctx.env['star_dict'][star_a].recepted_dict[star_b] = r
 
+    # Parse almuten house
+    # Fill house_dict
+    for star_name, star_obj in web.ctx.env['star_dict'].items():
+        # 宫主星啥，几飞几，宫内星哪些
+        if star_name not in ['天王', '海王', '冥王', '北交']:
+            for house in star_obj.lord_house_vec:
+                house_obj = House(house_num=house, ruler=star_name, ruler_loc=star_obj.house)
+                web.ctx.env['house_dict'][house] = house_obj
+
+    for star_name, star_obj in web.ctx.env['star_dict'].items():
+        house = star_obj.house
+        web.ctx.env['house_dict'][house].loc_star.append(star_name)
+
+
+pattern_constellation = re.compile(r'\([^)]*\)')
+pattern_house = re.compile(r'\d+')
+def _parse_ixingpan_star(soup):
+    '''
+    解析包括：
+        星体、四轴、富点、婚神、凯龙、北交
+        落入星座
+        落入宫位
+    :param soup:
+    :return:
+    '''
+    tables = soup.find_all('table')
+
+    table = tables[5]
+    tbody = table.find('tbody')
+    trs = tbody.find_all('tr')
+    for tr in trs:
+        tds = tr.find_all('td')
+        star = tds[0].text.strip()
+        constellation = tds[1].text.strip()
+        house = tds[2].text.strip()
+
+        constellation = pattern_constellation.sub('', constellation).strip()
+
+        match = pattern_house.search(house)
+
+        if match:
+            house = int(match.group())
+        else:
+            house = -1
+
+        # 重新填充 star_dict
+        if star in web.ctx.env['star_dict']:
+            web.ctx.env['star_dict'][star].constellation = constellation
+
+            if house != web.ctx.env['star_dict'][star].house:
+                pass
+                # print(f'{star} {star_dict[star].house} {house}')
+        else:
+            r = Star(star=star, house=house)
+            r.constellation = constellation
+            web.ctx.env['star_dict'][star] = r
+
+
+def _parse_ixingpan_house(soup):
+    '''
+    解析包括：
+        宫头宫位
+    :param soup:
+    :return:
+    '''
+    tables = soup.find_all('table')
+
+    table = tables[6]
+    tbody = table.find('tbody')
+    trs = tbody.find_all('tr')
+    for tr in trs:
+        tds = tr.find_all('td')
+        if len(tds) != 5:
+            continue
+
+        house = tds[0].text.strip()
+        constellation = tds[1].text.strip()
+        lord = tds[2].text.strip()
+        lord_loc = tds[4].text.strip()
+
+        constellation = pattern_constellation.sub('', constellation).strip()
+
+        match = pattern_house.search(house)
+
+        if match:
+            house = int(match.group())
+        else:
+            house = -1
+
+        # Update house_dict
+        if house in web.ctx.env['star_dict']:
+            web.ctx.env['house_dict'][house].constellation = constellation
+
+
+def _parse_ixingpan_aspect(soup):
+    tables = soup.find_all('table')
+
+    # 选择第7个<table>下的<td>标签
+    table = tables[7]
+    tbody = table.find('tbody')
+    trs = tbody.find_all('tr')
+
+    # print_module_info('DEBUG 爱星盘-相位信息')
+    for tr in trs:
+        tds = tr.find_all('td')
+        star_a = tds[0].text.strip()
+        star_b = tds[2].text.strip()
+        aspect = tds[1].text.strip()
+
+        aspect = aspect if aspect != '拱' else '三合'
+
+        aspect_obj = Aspect(star_b=star_b, aspect=aspect)
+        # star_dict[star_a].aspect_vec_old.append(aspect_obj)
+        web.ctx.env['star_dict'][star_a].aspect_dict[star_b] = aspect_obj
+
+        # 反过来填充
+        aspect_obj_reverse = Aspect(star_b=star_a, aspect=aspect)
+        web.ctx.env['star_dict'][star_b].aspect_dict[star_a] = aspect_obj_reverse
+
+
+def get_square():
+    '''
+    灾星系统
+        第一档（被一个克到就有明显事件）：8宫主 ≥ 命主星(上升点也算) > 12宫主
+        第二档（被两个克到才有明显事件）：土星 = 海王 = 冥王 = 天王
+        第三档（辅助参考）：火星 = 凯龙
+
+    受克程度：0° > 90 > 180
+    宫主星与灾星受克：
+        1. 与灾星0、90、180
+        2. 与除灾星外的宫主星形成：0、90、180
+        3. 与四轴成0度，等同于
+    :return: 几宫主被一档灾星8宫主（火星）克
+    '''
+
+    # Step 1. 获取三挡灾星
+    ruler_1 = web.ctx.env['house_dict'][1].ruler
+    ruler_8 = web.ctx.env['house_dict'][8].ruler
+    ruler_12 = web.ctx.env['house_dict'][12].ruler
+
+    trace_square_vec = [f'背景信息:\n\t第一档灾星: 8r ≥ 1r ＞ 12r\n\t第二档灾星: 土星 = 海王 = 冥王 = 天王\n\t第三档灾星: 土星 = 凯龙', f'盘主: 8r=「{ruler_8}」, 1r=「{ruler_1}」，12r=「{ruler_12}」']
+    # print(f'\n\n第一档灾星(被一个克到就有明显事件)：1宫主「{ruler_1}」，8宫主「{ruler_8}」，12宫主「{ruler_12}」')
+
+    sorted_dict = dict(sorted(web.ctx.env['house_dict'].items(), key=lambda x: x[0]))
+
+    total_square_vec = []
+
+    for house_id, obj in sorted_dict.items():
+        ruler = obj.ruler  # 宫主星
+        house_msg_vec = [f'{house_id}r={ruler}']
+
+        # 宫主星==灾星
+        if ruler == ruler_8:
+            house_msg_vec.append(f'与8r同星(一档灾星)')
+        elif ruler == ruler_12:
+            house_msg_vec.append(f'与12r同星(一档灾星)')
+
+        # 解析宫主星受克情况
+        aspect_vec = list(web.ctx.env['star_dict'][ruler].aspect_dict.values())
+
+        for aspect_obj in aspect_vec:
+            star_b = aspect_obj.star_b
+            aspect_info = aspect_obj.aspect
+
+            if aspect_info in {'三合', '六合'}:
+                continue
+
+            if star_b not in web.ctx.env['star_dict']:
+                continue
+
+            square_msg = ''
+            if star_b == ruler_8:
+                square_msg = f'被8r({star_b})克({aspect_info}, 一档灾星)'
+            elif star_b == ruler_1:
+                square_msg = f'被1r（{star_b}）克({aspect_info}, 一档灾星)'
+            elif star_b == ruler_12:
+                square_msg = f'被12r（{star_b}）克({aspect_info}, 一档灾星)'
+            elif star_b in {'土星', '海王', '冥王', '天王'}:
+                square_msg = f'被{star_b}克({aspect_info}, 二档灾星)'
+            elif star_b in {'火星'}:
+                square_msg = f'被{star_b} 克({aspect_info}, 三档灾星)'
+
+            if square_msg and square_msg not in house_msg_vec:
+                house_msg_vec.append(square_msg)
+
+        total_square_vec.append(house_msg_vec)
+
+    for msg_vec in total_square_vec:
+        if len(msg_vec) == 1:
+            continue
+
+        trace_square_vec.append(', '.join(msg_vec))
+        # print(', '.join(msg_vec))
+
+    web.ctx.env['trace_info']['灾星系统']['盘主灾星信息'] = trace_square_vec

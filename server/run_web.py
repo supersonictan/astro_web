@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
+import configparser
 
 import web
 import sys
-from typing import Dict
+from typing import Dict, List
 
-from common import *
+import common
 
 sys.path.append('/root/code/astro_web')
 import logging
@@ -21,14 +22,9 @@ console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
 
-def load_context_file():
+def init_context():
     """
-    knowledge_web.ini
-    knowledge.csv
-    jobs.csv
-    ixingpan_area.json
-
-    :return:
+    加载文件、初始化context字典
     """
     knowledge_dict: Dict[str, Dict[str, str]] = {}
 
@@ -52,9 +48,32 @@ def load_context_file():
 
     _load_knowledge_file()
 
-    return knowledge_dict
+    web.ctx.env['knowledge_dict'] = knowledge_dict
+
+    if 'star_dict' not in web.ctx.env:
+        star_dict: Dict[str, common.Star] = {}
+        web.ctx.env['star_dict'] = star_dict
+
+    if 'house_dict' not in web.ctx.env:
+        house_dict: Dict[int, common.House] = {}
+        web.ctx.env['house_dict'] = house_dict
+
+    all_trace_dict: Dict[str, Dict[str, List[str]]] = {}
+
+    disaster_trace_dict: Dict[str, List[str]] = {}
+    all_trace_dict['灾星系统'] = disaster_trace_dict
+
+    web.ctx.env['trace_info'] = all_trace_dict
 
 
+    marriage_trace_dict: Dict[str, List[str]] = {}
+    love_trace_dict: Dict[str, List[str]] = {}
+    wealth_trace_dict: Dict[str, List[str]] = {}
+    health_trace_dict: Dict[str, List[str]] = {}
+    work_trace_dict: Dict[str, List[str]] = {}
+    asc_trace_dict: Dict[str, List[str]] = {}
+    study_trace_dict: Dict[str, List[str]] = {}
+    nature_trace_dict: Dict[str, List[str]] = {}
 
 
 class Handle():
@@ -75,35 +94,14 @@ class Handle():
             content = recMsg.Content
             content = content.decode('utf-8')
 
-            # Init Context Variable
-            star_dict: Dict[str, Star] = {}
-            house_dict: Dict[int, House] = {}
-
-            all_trace_dict: Dict[str, Dict[str, List[str]]] = {}
-            disaster_trace_dict: Dict[str, List[str]] = {}
-            marriage_trace_dict: Dict[str, List[str]] = {}
-            love_trace_dict: Dict[str, List[str]] = {}
-            wealth_trace_dict: Dict[str, List[str]] = {}
-            health_trace_dict: Dict[str, List[str]] = {}
-            work_trace_dict: Dict[str, List[str]] = {}
-            asc_trace_dict: Dict[str, List[str]] = {}
-            study_trace_dict: Dict[str, List[str]] = {}
-            nature_trace_dict: Dict[str, List[str]] = {}
-
-            knowledge_dict: Dict[str, Dict[str, str]] = {}
-            knowledge_dict_old: Dict[str, str] = {}
-            jobs_dict: Dict[str, Tuple[str, str]] = {}
-            jobs_star_dict: Dict[str, str] = {}
+            init_context()
 
             err, reply_str = common.basic_analyse(customer_name=recMsg.FromUserName, content=content)
             if err != '':
                 replyMsg = reply.TextMsg(toUser, fromUser, f'【排盘失败】\n{err}, 请重新检查输入...')
                 return replyMsg.send()
 
-            print(f'ret_vec len is:{len(ret_vec)}')
-            reply_str = ','.join(ret_vec)
-            reply_str = reply_str[:230]
-            # replyMsg = reply.TextMsg(toUser, fromUser, reply_str)
+            reply_str = 'hahahaahh'
             replyMsg = reply.TextMsg(toUser, fromUser, reply_str)
 
             return replyMsg.send()
