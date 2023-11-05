@@ -105,20 +105,28 @@ class House:
 
 
 def basic_analyse(customer_name, content) -> Tuple[str, str]:
+    logger.debug('-------------- invoke basic_analyse --------------------')
     error_msg, soup_ixingpan, soup_almuten = _get_basic_soup_from_http(customer_name=customer_name, content=content)
 
     if error_msg != '':
         return error_msg, None
 
     # 解析宫神星网结果
+    logger.debug('before _parse_almuten_star......')
     _parse_almuten_star(soup_almuten)
 
     # 解析爱星盘结果
+    logger.debug('before _parse_ixingpan_star......')
     _parse_ixingpan_star(soup_ixingpan)
+
+    logger.debug('before _parse_ixingpan_house......')
     _parse_ixingpan_house(soup_ixingpan)
+    logger.debug('before _parse_ixingpan_aspect......')
     _parse_ixingpan_aspect(soup_ixingpan)
 
     get_square()
+
+    return error_msg, None
     # get_house_energy()
 
     # if IS_DEBUG:
@@ -750,3 +758,6 @@ def get_square():
         # print(', '.join(msg_vec))
 
     web.ctx.env['trace_info']['灾星系统']['盘主灾星信息'] = trace_square_vec
+
+    logger.debug('after trace_square_vec....')
+
