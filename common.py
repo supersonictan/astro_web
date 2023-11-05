@@ -129,12 +129,7 @@ def basic_analyse(customer_name, content) -> Tuple[str, str]:
     return error_msg, None
     # get_house_energy()
 
-    # if IS_DEBUG:
-    #     for star, star_obj in star_dict.items():
-    #         print(f'{star_obj}')
-    #
-    #     for k, v in house_dict.items():
-    #         print(f'{v}')
+
 
     # parse_love()
     # parse_marrage_2()
@@ -168,6 +163,115 @@ def basic_analyse(customer_name, content) -> Tuple[str, str]:
     #             # print(f'{index}、{sub}')
     #             # f.writelines(f'{index}、{sub}\n')
     #             ret_vec.append(f'{index}、{sub}')
+
+
+
+def parse_love():
+    '''
+    1、入星
+    一般米说，进入5宮的星体，或者5宫主，代表"自己容易遇到的类型"，
+    或者我们实际恋爱对象的特征，这个和"我们自己喜欢的类型"不是一回事。
+    日、月、木：大星体，代表桃花多旺，但不一定好。要好至少是苗旺的，或至少和1~2宫发生关联的。
+    三王星与 5r/金星：桃花容易问题多，烂桃花，不伦恋，多角恋
+    '''
+    star_dict = web.ctx.env["star_dict"]
+    house_dict = web.ctx.env["house_dict"]
+
+    loc_star_5_dict = web.ctx.env['knowledge_dict']['5宫落星的恋爱解释']
+
+    # check 日、月、木是否在5宫
+    ruler_5 = house_dict[5].ruler
+    ruler5_score = int(star_dict[ruler_5].score)
+
+    tmp_set = {'太阳', '月亮', '木星'}
+    n = len(tmp_set & set(house_dict[5].loc_star))
+    msg = '【没有太阳、月亮、木星在5宫】桃花数量不属于多的。'
+    if n > 0:
+        msg = f'桃花数量属于多的，太阳、月亮、木星有{n}个在5宫.'
+
+    web.ctx.env['trace_info']['恋爱']['5r得分'] = [f'5r score={ruler5_score}']
+    web.ctx.env['trace_info']['恋爱']['桃花数量'] = [msg]
+
+    trace_loc_star_vec = []
+    loc_star_vec = house_dict[5].loc_star
+    for star, msg in loc_star_5_dict.items():
+        if star in loc_star_vec:
+            trace_loc_star_vec.append(f'【{star}落5宫】{msg}')
+
+    trace_loc_star_vec.append(f'【5宫主{ruler_5}】{loc_star_5_dict[ruler_5]}')
+
+    # check 三王星和5r/金星相位
+    tmp_vec = [ruler_5, '金星']
+    bad_tmp_vec = ['冥王', '海王', '天王']
+    for target in tmp_vec:
+        for bad_star in bad_tmp_vec:
+            if bad_star in star_dict[target].aspect_dict and star_dict[target].aspect_dict[bad_star].aspect in {'冲', '刑'}:
+                msg = loc_star_5_dict[bad_star]
+
+                if bad_star in star_dict[target].aspect_dict and star_dict[target].aspect_dict[bad_star].aspect in {'冲', '刑'}:
+                    msg = loc_star_5_dict[bad_star]
+
+                    reason = f'{target}{web.ctx.env["star_dict"][target].aspect_dict[bad_star].aspect}{bad_star}'
+                    trace_loc_star_vec.append(f'【{reason}】{msg}')
+
+    web.ctx.env['trace_info']['恋爱']['恋爱容易遇到的类型'] = trace_loc_star_vec
+
+    '''
+    2、飞星
+    1飞5，容易恋爱脑，尤其是1落馅时
+    5飞1，桃花来找自己，如果5庙旺，容易生小孩，如果落陷，来讨货
+    5飞8，5飞12 不太容易受孕，生小孩会晚，秘密恋情或地下恋情
+    5飞9异地恋，5飞10和领导上级恋爱，5飞6办公室恋情
+    5特別容易与2r、8r产生刑克，代表容易因为桃花破财
+    '''
+    ruler5_fly_dict = web.ctx.env['knowledge_dict']['5飞星的恋爱解释']
+
+    star_5_loc = star_dict[ruler_5].house
+    ruler1_score = int(star_dict[house_dict[1].ruler].score)
+    star_1_loc = star_dict[house_dict[1].ruler].house
+
+    ruler2 = house_dict[2].ruler
+    ruler8 = house_dict[8].ruler
+
+    # '1飞5': '容易恋爱脑，尤其是1落馅时'
+    tmp_vec = []
+    if star_1_loc == 5 and ruler1_score <= 0:
+        tmp_vec.append('【1飞5,且1r 分数<0】容易恋爱脑的配置.')
+
+    tmp_key = f'5飞{star_5_loc}'
+    if tmp_key in ruler5_fly_dict:
+        tmp_vec.append(f'【{tmp_key}】{ruler5_fly_dict[tmp_key]}')
+
+    # 5r, 2r, 8r 是否刑克
+    if ruler2 in star_dict[ruler_5].aspect_dict and star_dict[ruler_5].aspect_dict[ruler2].aspect in {'刑'}:
+        msg = '【5r刑2r】容易因为桃花破财'
+        tmp_vec.append(msg)
+    if ruler8 in star_dict[ruler_5].aspect_dict and star_dict[ruler_5].aspect_dict[ruler8].aspect in {'刑'}:
+        msg = '【5r刑8r】容易因为桃花破财'
+        tmp_vec.append(msg)
+
+    '''
+    3. 相位——宫性
+    5-7关系最好和谐的，不和谐的最好相亲，因为恋爱久了结不了婚
+    5-11 对冲，会出现恋爱出轨/劈腿，俗称熟人挖墙脚。影响 papapa 和或者堕胎/生育困难
+    '''
+    ruler11 = house_dict[11].ruler
+    if ruler11 in star_dict[ruler_5].aspect_dict and star_dict[ruler_5].aspect_dict[ruler11].aspect == '冲':
+        tmp_vec.append('【5r冲11r】容易出现恋爱出轨/劈腿，俗称熟人挖墙脚。影响 papapa 和或者堕胎/生育困难.')
+
+    ruler7 = house_dict[7].ruler
+    if ruler7 in star_dict[ruler_5].aspect_dict and star_dict[ruler_5].aspect_dict[ruler7].aspect in {'冲','刑'}:
+        tmp_vec.append('【5r刑冲7r】因为恋爱久了可能结不了婚，可以选择相亲.')
+    '''
+    4、相位二星性
+    金火产生相位都很容易恋爱，吉有不错的愉悦感受。
+    金月颤抖，男：婆媳关系混乱。女：不够温柔等
+    '''
+
+    web.ctx.env['trace_info']['恋爱']['恋爱深层解析'] = tmp_vec
+
+
+
 
 
 def _get_basic_soup_from_http(customer_name, content) -> Tuple[str, BeautifulSoup, BeautifulSoup]:

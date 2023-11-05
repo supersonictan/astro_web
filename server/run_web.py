@@ -48,7 +48,7 @@ def init_context():
 
     _load_knowledge_file()
 
-    # web.ctx.env['knowledge_dict'] = knowledge_dict
+    web.ctx.env['knowledge_dict'] = knowledge_dict
 
     if 'star_dict' not in web.ctx.env:
         star_dict: Dict[str, common.Star] = {}
@@ -61,13 +61,17 @@ def init_context():
     all_trace_dict: Dict[str, Dict[str, List[str]]] = {}
 
     disaster_trace_dict: Dict[str, List[str]] = {}
+    love_trace_dict: Dict[str, List[str]] = {}
+
     all_trace_dict['灾星系统'] = disaster_trace_dict
+    all_trace_dict['恋爱'] = love_trace_dict
+
+
 
     web.ctx.env['trace_info'] = all_trace_dict
 
 
     marriage_trace_dict: Dict[str, List[str]] = {}
-    love_trace_dict: Dict[str, List[str]] = {}
     wealth_trace_dict: Dict[str, List[str]] = {}
     health_trace_dict: Dict[str, List[str]] = {}
     work_trace_dict: Dict[str, List[str]] = {}
@@ -110,6 +114,13 @@ class Handle():
             for k, v in web.ctx.env.items():
                 if k not in DEBUG_BLACK_SET:
                     print(f'------------> key:{k}\tval:{v.values()}')
+
+            # if IS_DEBUG:
+            #     for star, star_obj in star_dict.items():
+            #         print(f'{star_obj}')
+            #
+            #     for k, v in house_dict.items():
+            #         print(f'{v}')
 
             reply_str = 'hahahaahh'
             replyMsg = reply.TextMsg(toUser, fromUser, reply_str)
