@@ -181,10 +181,13 @@ def parse_work():
     ruler10_loc = star_dict[ruler10].house
 
     key = f'10宫飞{ruler10_loc}宫'
-    work_keyword = jobs_dict[key][0]
-    work_job = jobs_dict[key][1]
+    answer = jobs_dict[key]
+    work_keyword = answer.split('可能的职业：')[0].split('关键词-')[-1]
+    work_job = answer.split('可能的职业：')[1]
     # work_trace_dict['事业关键词'] = [f'【{key}】{work_keyword}']
     reason_debug = f'【{key}】' if is_debug else ''
+    set_trace_info('事业', '事业关键词', [f'{reason_debug}{work_keyword}'])
+
     set_trace_info('事业', '一档适合的职业', [f'{reason_debug}{work_job}'])
 
     sub_vec = []

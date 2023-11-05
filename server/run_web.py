@@ -89,7 +89,7 @@ class Handle():
 
             logger.debug('0000000000000000000000000000000')
             report = []
-            domain_vec = ['恋爱', '婚姻']
+            domain_vec = ['恋爱', '婚姻', '事业']
             for target in domain_vec:
                 field_dict = web.ctx.env['trace_info'][target]
                 if len(report) != 0:
