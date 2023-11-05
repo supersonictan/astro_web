@@ -127,13 +127,13 @@ def basic_analyse(customer_name, content) -> Tuple[str, str]:
     get_square()
 
     parse_love()
+    parse_marrage_2()
 
     return error_msg, None
     # get_house_energy()
 
 
 
-    # parse_marrage_2()
     # parse_marrage()
     # parse_wealth()
     # parse_health()
@@ -288,6 +288,21 @@ def parse_love():
     web.ctx.env['trace_info']['恋爱']['恋爱深层解析'] = tmp_vec
 
 
+def parse_marrage_2():
+    is_debug = web.ctx.env['is_debug']
+    star_dict = web.ctx.env["star_dict"]
+    house_dict = web.ctx.env["house_dict"]
+    marriage_trace_dict = web.ctx.env['婚姻']
+
+    # 婚神星落宫
+    love_star_house = star_dict['婚神'].house
+    key = f'婚神{love_star_house}宫'
+
+    knowledge_dict = web.ctx.env['knowledge_dict']
+    desc = knowledge_dict['婚神星落宫'][key]
+
+    reason = f'【{key}】' if is_debug else ''
+    marriage_trace_dict['婚神星表现'] = [f'{reason}{desc}']
 
 
 

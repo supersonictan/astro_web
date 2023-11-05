@@ -320,14 +320,6 @@ def parse_marrage():
     all_trace_dict['婚姻'] = marriage_trace_dict
 
 
-def parse_marrage_2():
-    # 婚神星落宫
-    love_star_house = star_dict['婚神'].house
-    key = f'婚神{love_star_house}宫'
-
-    desc = knowledge_dict['婚神星落宫'][key]
-    marriage_trace_dict['婚神星表现'] = [f'【{key}】{desc}']
-
 def parse_wealth():
     """1. 钱怎么来，1r、2r得到接纳 互容"""
 

@@ -89,7 +89,7 @@ class Handle():
 
             logger.debug('0000000000000000000000000000000')
             report = []
-            domain_vec = ['恋爱'] 
+            domain_vec = ['恋爱', '婚姻']
             for target in domain_vec:
                 field_dict = web.ctx.env['trace_info'][target]
                 report.append('恋爱:')
@@ -155,9 +155,11 @@ def init_context():
 
     disaster_trace_dict: Dict[str, List[str]] = {}
     love_trace_dict: Dict[str, List[str]] = {}
+    marriage_trace_dict: Dict[str, List[str]] = {}
 
     all_trace_dict['灾星系统'] = disaster_trace_dict
     all_trace_dict['恋爱'] = love_trace_dict
+    all_trace_dict['婚姻'] = marriage_trace_dict
 
 
 
@@ -165,7 +167,6 @@ def init_context():
 
     web.ctx.env['is_debug'] = False
 
-    marriage_trace_dict: Dict[str, List[str]] = {}
     wealth_trace_dict: Dict[str, List[str]] = {}
     health_trace_dict: Dict[str, List[str]] = {}
     work_trace_dict: Dict[str, List[str]] = {}
