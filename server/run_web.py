@@ -13,14 +13,103 @@ import logging
 import reply
 import receive
 
-# 创建日志记录器
-logger = logging.getLogger('my_logger')
-logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
+logger = logging.getLogger('run_web.py')
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
+
+logger.setLevel(logging.DEBUG)
+
+# 创建日志记录器
+# logger = logging.getLogger('my_logger')
+# logger.setLevel(logging.DEBUG)
+# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# 
 # console_handler = logging.StreamHandler()
 # console_handler.setFormatter(formatter)
 # logger.addHandler(console_handler)
+
+
+
+DEBUG_BLACK_SET = {'ACTUAL_SERVER_PROTOCOL', 'PATH_INFO', 'QUERY_STRING', 'REMOTE_ADDR', 'REMOTE_PORT', 'REQUEST_METHOD', 'REQUEST_URI', 'SCRIPT_NAME', 'SERVER_NAME', 'SERVER_PROTOCOL', 'SERVER_SOFTWARE', 'wsgi.errors', 'wsgi.input', 'wsgi.input_terminated', 'wsgi.multiprocess', 'wsgi.multithread', 'wsgi.run_once', 'wsgi.url_scheme', 'wsgi.version', 'SERVER_PORT', 'HTTP_USER_AGENT', 'HTTP_ACCEPT', 'HTTP_HOST', 'HTTP_PRAGMA', 'CONTENT_TYPE', 'CONTENT_LENGTH'}
+
+class Handle():
+    def POST(self):
+        try:
+            webData = web.data()
+            logger.error(f"Handle Post webdata is {webData}")
+
+            recMsg = receive.parse_xml(webData)
+
+            if not (isinstance(recMsg, receive.Msg) and recMsg != 'text'):
+                logger.fatal('暂不处理')
+                return 'success'
+
+            toUser = recMsg.FromUserName
+            fromUser = recMsg.ToUserName
+
+            content = recMsg.Content
+            content = content.decode('utf-8')
+
+            logger.debug(f'----------> FromUser:{recMsg.FromUserName} ToUser:{recMsg.ToUserName} Content:{content}')
+
+            init_context()
+
+            err, reply_str = common.basic_analyse(customer_name=recMsg.FromUserName, content=content)
+            logger.debug('After basic_analyse.....')
+            if err != '':
+                replyMsg = reply.TextMsg(toUser, fromUser, f'【排盘失败】\n{err}, 请重新检查输入...')
+                return replyMsg.send()
+
+            # DEBUG
+            for k, v in web.ctx.env.items():
+                if k in DEBUG_BLACK_SET:
+                    continue
+                
+                if k == 'knowledge_dict':
+                    sub_keys = ';'.join(v.keys())
+                    logger.debug(f'knowledge_dict.sub_keys:{sub_keys}')
+                    continue
+
+                if k == 'trace_info':
+                    sub_keys = ';'.join(v.keys())
+                    # logger.debug(f'sub_keys:{sub_keys}')
+                    continue
+
+                # logger.debug(f'\nkey:{k}\tval:{v.values()}')
+
+            if False:
+                for star, star_obj in star_dict.items():
+                    print(f'{star_obj}')
+            
+                for k, v in house_dict.items():
+                    print(f'{v}')
+
+            report = []
+            domain_vec = ['恋爱'] 
+            for target in domain_vec:
+                field_dict = web.ctx.env['trace_info'][target]
+                report.append('恋爱:')
+		
+                idx = 0
+                for biz, sub_vec in field_dict.items():
+                    idx += 1
+                    msg = ';'.join(sub_vec)
+                    report.append(f'{idx}. {biz}: {msg}')
+
+
+            reply_str = 'hahahaahh'
+            reply_str = '\n'.join(report)
+            replyMsg = reply.TextMsg(toUser, fromUser, reply_str)
+
+            return replyMsg.send()
+
+        except Exception as Argument:
+            print(Argument)
+            return Argument
+
 
 
 def init_context():
@@ -70,6 +159,7 @@ def init_context():
 
     web.ctx.env['trace_info'] = all_trace_dict
 
+    web.ctx.env['is_debug'] = False
 
     marriage_trace_dict: Dict[str, List[str]] = {}
     wealth_trace_dict: Dict[str, List[str]] = {}
@@ -78,58 +168,6 @@ def init_context():
     asc_trace_dict: Dict[str, List[str]] = {}
     study_trace_dict: Dict[str, List[str]] = {}
     nature_trace_dict: Dict[str, List[str]] = {}
-
-
-DEBUG_BLACK_SET = {'ACTUAL_SERVER_PROTOCOL', 'PATH_INFO', 'QUERY_STRING', 'REMOTE_ADDR', 'REMOTE_PORT', 'REQUEST_METHOD', 'REQUEST_URI', 'SCRIPT_NAME', 'SERVER_NAME', 'SERVER_PROTOCOL', 'SERVER_SOFTWARE', 'wsgi.errors', 'wsgi.input', 'wsgi.input_terminated', 'wsgi.multiprocess', 'wsgi.multithread', 'wsgi.run_once', 'wsgi.url_scheme', 'wsgi.version', 'SERVER_PORT', 'HTTP_USER_AGENT', 'HTTP_ACCEPT', 'HTTP_HOST', 'HTTP_PRAGMA', 'CONTENT_TYPE', 'CONTENT_LENGTH'}
-
-class Handle():
-    def POST(self):
-        try:
-            webData = web.data()
-            logger.error(f"Handle Post webdata is {webData}")
-
-            recMsg = receive.parse_xml(webData)
-
-            if not (isinstance(recMsg, receive.Msg) and recMsg != 'text'):
-                logger.fatal('暂不处理')
-                return 'success'
-
-            toUser = recMsg.FromUserName
-            fromUser = recMsg.ToUserName
-
-            content = recMsg.Content
-            content = content.decode('utf-8')
-
-            logger.debug(f'FromUser:{recMsg.FromUserName} ToUser:{recMsg.ToUserName} Content:{content}')
-
-            init_context()
-
-            err, reply_str = common.basic_analyse(customer_name=recMsg.FromUserName, content=content)
-            logger.debug('After basic_analyse.....')
-            if err != '':
-                replyMsg = reply.TextMsg(toUser, fromUser, f'【排盘失败】\n{err}, 请重新检查输入...')
-                return replyMsg.send()
-
-            # DEBUG
-            for k, v in web.ctx.env.items():
-                if k not in DEBUG_BLACK_SET:
-                    print(f'------------> key:{k}\tval:{v.values()}')
-
-            # if IS_DEBUG:
-            #     for star, star_obj in star_dict.items():
-            #         print(f'{star_obj}')
-            #
-            #     for k, v in house_dict.items():
-            #         print(f'{v}')
-
-            reply_str = 'hahahaahh'
-            replyMsg = reply.TextMsg(toUser, fromUser, reply_str)
-
-            return replyMsg.send()
-
-        except Exception as Argument:
-            print(Argument)
-            return Argument
 
 
 

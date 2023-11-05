@@ -126,12 +126,13 @@ def basic_analyse(customer_name, content) -> Tuple[str, str]:
 
     get_square()
 
+    parse_love()
+
     return error_msg, None
     # get_house_energy()
 
 
 
-    # parse_love()
     # parse_marrage_2()
     # parse_marrage()
     # parse_wealth()
@@ -167,6 +168,7 @@ def basic_analyse(customer_name, content) -> Tuple[str, str]:
 
 
 def parse_love():
+    is_debug = web.ctx.env['is_debug']
     '''
     1、入星
     一般米说，进入5宮的星体，或者5宫主，代表"自己容易遇到的类型"，
@@ -185,20 +187,24 @@ def parse_love():
 
     tmp_set = {'太阳', '月亮', '木星'}
     n = len(tmp_set & set(house_dict[5].loc_star))
-    msg = '【没有太阳、月亮、木星在5宫】桃花数量不属于多的。'
+    msg = '【没有太阳、月亮、木星在5宫】桃花数量不属于多的。' if is_debug else '桃花数量不属于多的.'
     if n > 0:
-        msg = f'桃花数量属于多的，太阳、月亮、木星有{n}个在5宫.'
+        msg = f'桃花数量属于多的，太阳、月亮、木星有{n}个在5宫.' if is_debug else '桃花数量属于多的.'
 
-    web.ctx.env['trace_info']['恋爱']['5r得分'] = [f'5r score={ruler5_score}']
+    if is_debug:
+        web.ctx.env['trace_info']['恋爱']['5r得分'] = [f'5r score={ruler5_score}']
+
     web.ctx.env['trace_info']['恋爱']['桃花数量'] = [msg]
 
     trace_loc_star_vec = []
     loc_star_vec = house_dict[5].loc_star
     for star, msg in loc_star_5_dict.items():
         if star in loc_star_vec:
-            trace_loc_star_vec.append(f'【{star}落5宫】{msg}')
+            msg_loc = f'【{star}落5宫】{msg}' if is_debug else f'{msg}'
+            trace_loc_star_vec.append(msg_loc)
 
-    trace_loc_star_vec.append(f'【5宫主{ruler_5}】{loc_star_5_dict[ruler_5]}')
+    msg_loc_star = f'(不一定发生)【5宫主{ruler_5}】{loc_star_5_dict[ruler_5]}' if is_debug else f'(不一定发生){loc_star_5_dict[ruler_5]}'
+    trace_loc_star_vec.append(msg_loc_star)
 
     # check 三王星和5r/金星相位
     tmp_vec = [ruler_5, '金星']
@@ -211,7 +217,10 @@ def parse_love():
                 if bad_star in star_dict[target].aspect_dict and star_dict[target].aspect_dict[bad_star].aspect in {'冲', '刑'}:
                     msg = loc_star_5_dict[bad_star]
 
-                    reason = f'{target}{web.ctx.env["star_dict"][target].aspect_dict[bad_star].aspect}{bad_star}'
+                    reason = f'{target}{star_dict[target].aspect_dict[bad_star].aspect}{bad_star}'
+                    if not is_debug:
+                        reason = ''
+
                     trace_loc_star_vec.append(f'【{reason}】{msg}')
 
     web.ctx.env['trace_info']['恋爱']['恋爱容易遇到的类型'] = trace_loc_star_vec
