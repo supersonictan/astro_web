@@ -264,7 +264,7 @@ def parse_love():
         msg = '【5r刑8r】容易因为桃花破财' if is_debug else '容易因为桃花破财'
         tmp_vec.append(msg)
 
-    logger.debug('!66666666666666666666666666666666')
+    # logger.debug('!66666666666666666666666666666666')
     '''
     3. 相位——宫性
     5-7关系最好和谐的，不和谐的最好相亲，因为恋爱久了结不了婚
@@ -297,12 +297,13 @@ def parse_marrage_2():
     # 婚神星落宫
     love_star_house = star_dict['婚神'].house
     key = f'婚神{love_star_house}宫'
+    logger.debug(key)
 
     knowledge_dict = web.ctx.env['knowledge_dict']
     desc = knowledge_dict['婚神星落宫'][key]
 
     reason = f'【{key}】' if is_debug else ''
-    marriage_trace_dict['婚神星表现'] = [f'{reason}{desc}']
+    web.ctx.env['婚姻']['婚神星表现'] = [f'{reason}{desc}']
 
 
 
