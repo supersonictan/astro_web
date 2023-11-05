@@ -110,7 +110,7 @@ def basic_analyse(customer_name, content) -> Tuple[str, str]:
         return error_msg, None
 
     # 加载知识库
-    knowledge_dict, knowledge_dict_old, jobs_dict, jobs_star_dict = _load_local_file()
+    # knowledge_dict, knowledge_dict_old, jobs_dict, jobs_star_dict = _load_local_file()
     _parse_almuten_star(soup_almuten)
     parse_almuten_house()
 
