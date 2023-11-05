@@ -92,12 +92,15 @@ class Handle():
             for target in domain_vec:
                 field_dict = web.ctx.env['trace_info'][target]
                 report.append('恋爱:')
-		
-                idx = 0
+
+                idx = -1
+                no_vec = ['一', '二', '三', '四', '五', '六', '七', '八']
                 for biz, sub_vec in field_dict.items():
                     idx += 1
-                    msg = ';'.join(sub_vec)
-                    report.append(f'{idx}. {biz}: {msg}')
+
+                    sub_vec_with_numbers = [f"{i + 1}、{item}" for i, item in enumerate(sub_vec)]
+                    msg = '; '.join(sub_vec_with_numbers)
+                    report.append(f'{no_vec[idx]}、{biz}: {msg}\n')
 
 
             reply_str = 'hahahaahh'

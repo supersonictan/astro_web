@@ -245,18 +245,20 @@ def parse_love():
     # '1飞5': '容易恋爱脑，尤其是1落馅时'
     tmp_vec = []
     if star_1_loc == 5 and ruler1_score <= 0:
-        tmp_vec.append('【1飞5,且1r 分数<0】容易恋爱脑的配置.')
+        tmp_reason = '【1飞5,且1r 分数<0】' if is_debug else ''
+        tmp_vec.append(f'{tmp_reason}有可能是恋爱脑的配置.')
 
     tmp_key = f'5飞{star_5_loc}'
     if tmp_key in ruler5_fly_dict:
-        tmp_vec.append(f'【{tmp_key}】{ruler5_fly_dict[tmp_key]}')
+        tmp_key = f'【{tmp_key}】' if is_debug else ''
+        tmp_vec.append(f'{tmp_key}{ruler5_fly_dict[tmp_key]}')
 
     # 5r, 2r, 8r 是否刑克
     if ruler2 in star_dict[ruler_5].aspect_dict and star_dict[ruler_5].aspect_dict[ruler2].aspect in {'刑'}:
-        msg = '【5r刑2r】容易因为桃花破财'
+        msg = '【5r刑2r】有可能因为桃花破财' if is_debug else '有可能因为桃花破财'
         tmp_vec.append(msg)
     if ruler8 in star_dict[ruler_5].aspect_dict and star_dict[ruler_5].aspect_dict[ruler8].aspect in {'刑'}:
-        msg = '【5r刑8r】容易因为桃花破财'
+        msg = '【5r刑8r】容易因为桃花破财' if is_debug else '容易因为桃花破财'
         tmp_vec.append(msg)
 
     '''
@@ -266,11 +268,13 @@ def parse_love():
     '''
     ruler11 = house_dict[11].ruler
     if ruler11 in star_dict[ruler_5].aspect_dict and star_dict[ruler_5].aspect_dict[ruler11].aspect == '冲':
-        tmp_vec.append('【5r冲11r】容易出现恋爱出轨/劈腿，俗称熟人挖墙脚。影响 papapa 和或者堕胎/生育困难.')
+        reason_tmp = '【5r冲11r】' if is_debug else ''
+        tmp_vec.append(f'{reason_tmp}可能会出现恋爱出轨/劈腿，俗称熟人挖墙脚。影响 papapa 和或者堕胎/生育困难.')
 
     ruler7 = house_dict[7].ruler
     if ruler7 in star_dict[ruler_5].aspect_dict and star_dict[ruler_5].aspect_dict[ruler7].aspect in {'冲','刑'}:
-        tmp_vec.append('【5r刑冲7r】因为恋爱久了可能结不了婚，可以选择相亲.')
+        reason_tmp = '【5r刑冲7r】' if is_debug else ''
+        tmp_vec.append(f'{reason_tmp}因为恋爱久了可能结不了婚，可以选择相亲.')
     '''
     4、相位二星性
     金火产生相位都很容易恋爱，吉有不错的愉悦感受。
