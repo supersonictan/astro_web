@@ -217,13 +217,14 @@ def parse_love():
                 if bad_star in star_dict[target].aspect_dict and star_dict[target].aspect_dict[bad_star].aspect in {'冲', '刑'}:
                     msg = loc_star_5_dict[bad_star]
 
-                    reason = f'{target}{star_dict[target].aspect_dict[bad_star].aspect}{bad_star}'
+                    reason = f'【{target}{star_dict[target].aspect_dict[bad_star].aspect}{bad_star}】'
                     if not is_debug:
                         reason = ''
 
-                    trace_loc_star_vec.append(f'【{reason}】{msg}')
+                    trace_loc_star_vec.append(f'{reason}{msg}')
 
     web.ctx.env['trace_info']['恋爱']['恋爱容易遇到的类型'] = trace_loc_star_vec
+
 
     '''
     2、飞星
@@ -248,10 +249,12 @@ def parse_love():
         tmp_reason = '【1飞5,且1r 分数<0】' if is_debug else ''
         tmp_vec.append(f'{tmp_reason}有可能是恋爱脑的配置.')
 
+    logger.debug('!4.2 4.2 4.2 4.2 4.2')
     tmp_key = f'5飞{star_5_loc}'
     if tmp_key in ruler5_fly_dict:
-        tmp_key = f'【{tmp_key}】' if is_debug else ''
-        tmp_vec.append(f'{tmp_key}{ruler5_fly_dict[tmp_key]}')
+        tmp_reason = f'【{tmp_key}】' if is_debug else ''
+        tmp_vec.append(f'{tmp_reason}{ruler5_fly_dict[tmp_key]}')
+
 
     # 5r, 2r, 8r 是否刑克
     if ruler2 in star_dict[ruler_5].aspect_dict and star_dict[ruler_5].aspect_dict[ruler2].aspect in {'刑'}:
@@ -261,6 +264,7 @@ def parse_love():
         msg = '【5r刑8r】容易因为桃花破财' if is_debug else '容易因为桃花破财'
         tmp_vec.append(msg)
 
+    logger.debug('!66666666666666666666666666666666')
     '''
     3. 相位——宫性
     5-7关系最好和谐的，不和谐的最好相亲，因为恋爱久了结不了婚

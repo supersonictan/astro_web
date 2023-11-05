@@ -87,6 +87,7 @@ class Handle():
                 for k, v in house_dict.items():
                     print(f'{v}')
 
+            logger.debug('0000000000000000000000000000000')
             report = []
             domain_vec = ['恋爱'] 
             for target in domain_vec:
@@ -99,8 +100,8 @@ class Handle():
                     idx += 1
 
                     sub_vec_with_numbers = [f"{i + 1}、{item}" for i, item in enumerate(sub_vec)]
-                    msg = '; '.join(sub_vec_with_numbers)
-                    report.append(f'{no_vec[idx]}、{biz}: {msg}\n')
+                    msg = '\n'.join(sub_vec_with_numbers)
+                    report.append(f'\n{no_vec[idx]}、{biz}: {msg}')
 
 
             reply_str = 'hahahaahh'
