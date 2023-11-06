@@ -48,10 +48,31 @@ class Handle():
 
             init_context()
 
-            error_msg, birthday, dist, is_dst, toffset, location = common._prepare_http_data(content=content, name=recMsg.FromUserName)
+            err, birthday, dist, is_dst, toffset, location = common._prepare_http_data(content=content, name=recMsg.FromUserName)
+            if err != '':
+                replyMsg = reply.TextMsg(toUser, fromUser, f'【排盘失败】\n{err}, 请重新检查输入...')
+                return replyMsg.send()
+
             folder_path = f'./cache/basic/{recMsg.FromUserName}'
             dump_filename = f'{folder_path}/report_{recMsg.FromUserName}_{birthday}_{dist}.pkl'
-            get_or_dump_report(dump_filename)
+
+            # 非第一轮对话：读pkl，并返回对应结果
+            if content in {'1', '2', '3', '4', '5', '6', '7'}:
+                report = get_and_dump_report(dump_filename, load_key=content)
+
+                if report is None:
+                    replyMsg = reply.TextMsg(toUser, fromUser, f'【排盘失败】\n, 请重新检查输入...')
+                    return replyMsg.send()
+
+                replyMsg = reply.TextMsg(toUser, fromUser, report)
+                return replyMsg.send()
+
+            # 第一轮对话，先check缓存
+            report = get_and_dump_report(dump_filename, load_key='', is_load=True)
+            if report is not None:
+                ret = append_msg(report)
+                replyMsg = reply.TextMsg(toUser, fromUser, ret)
+                return replyMsg.send()
 
             err, reply_str = common.basic_analyse(customer_name=recMsg.FromUserName, content=content)
             logger.debug('After basic_analyse.....')
@@ -59,48 +80,9 @@ class Handle():
                 replyMsg = reply.TextMsg(toUser, fromUser, f'【排盘失败】\n{err}, 请重新检查输入...')
                 return replyMsg.send()
 
-            # DEBUGtrace_info
-            for k, v in web.ctx.env.items():
-                if k in DEBUG_BLACK_SET:
-                    continue
-                
-                if k == 'knowledge_dict':
-                    sub_keys = ';'.join(v.keys())
-                    logger.debug(f'knowledge_dict.sub_keys:{sub_keys}')
-                    continue
+            report = get_and_dump_report(dump_filename, load_key='', is_load=False)
 
-                if k == 'trace_info':
-                    sub_keys = ';'.join(v.keys())
-                    # logger.debug(f'sub_keys:{sub_keys}')
-                    continue
-
-            report = []
-            domain_vec = ['恋爱', '婚姻', '事业']
-            for target in domain_vec:
-                if target not in web.ctx.env['trace_info']:
-                    logger.error(f'{target} not in web.ctx.env.trace_info')
-
-                field_dict = web.ctx.env['trace_info'][target]
-                if len(report) != 0:
-                    report.append('\n')
-                report.append(f'『解析{target}』')
-
-                idx = -1
-                no_vec = ['一', '二', '三', '四', '五', '六', '七', '八']
-                for biz, sub_vec in field_dict.items():
-                    idx += 1
-
-                    if len(sub_vec) > 1:
-                        sub_vec_with_numbers = [f"{i + 1}、{item}" for i, item in enumerate(sub_vec)]
-                    else:
-                        sub_vec_with_numbers = [f"{item}" for i, item in enumerate(sub_vec)]
-
-                    msg = '\n'.join(sub_vec_with_numbers)
-                    report.append(f'\n{no_vec[idx]}、{biz}: {msg}')
-
-
-            reply_str = 'hahahaahh'
-            reply_str = '\n'.join(report)
+            reply_str = append_msg(report)
             replyMsg = reply.TextMsg(toUser, fromUser, reply_str)
 
             return replyMsg.send()
@@ -110,9 +92,19 @@ class Handle():
             return Argument
 
 
-def get_or_dump_report(filename, load_key=''):
+index_dict = {'1': '别人眼中自己', '2': '恋爱', '3': '婚姻', '4': '学业', '5': '事业', '6': '财富'}
+
+
+def get_and_dump_report(filename, load_key='', is_load=True):
     if load_key != '':
+        if load_key not in index_dict:
+            logger.error(f'解析失败!! 用户输入Key:{load_key} not exists...')
+            return None
+
+        load_key = index_dict[load_key]
+
         if not os.path.exists(filename):
+            logger.error(f'用户输入Key:{load_key} 但文件:{filename} 不存在...')
             return None
 
         with open(filename, 'rb') as file:
@@ -125,11 +117,26 @@ def get_or_dump_report(filename, load_key=''):
             report = _gen_report(key=load_key, all_trace_dict=all_trace_dict)
             return report
 
+    if is_load:
+        if not os.path.exists(filename):
+            logger.error(f'文件:{filename} 不存在... 将走排盘逻辑')
+            return None
+
+        with open(filename, 'rb') as file:
+            all_trace_dict = pickle.load(file)
+            return all_trace_dict['上升点']
+
     all_trace_dict = web.ctx.env['trace_info']
+
+    if os.path.exists(filename):
+        return all_trace_dict['上升点']
+
     with open(filename, 'wb') as file:
         pickle.dump(all_trace_dict, file)
 
-        return None
+        report = _gen_report(key='上升点', all_trace_dict=all_trace_dict)
+
+        return report
 
 
 def _gen_report(key: str, all_trace_dict) -> str:
@@ -152,6 +159,16 @@ def _gen_report(key: str, all_trace_dict) -> str:
         report.append(f'\n{no_vec[idx]}、{biz}: {msg}')
 
     return '\n'.join(report)
+
+
+index_str = '  '.join([f"{key}: {value}" for key, value in index_dict.items()])
+
+
+def append_msg(report):
+    v = [report]
+    v.append(index_str)
+
+    return '\n\n'.join(v)
 
 
 def init_context():
