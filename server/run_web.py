@@ -4,7 +4,8 @@ import configparser
 import web
 import sys
 from typing import Dict, List
-
+import os
+import pickle
 
 sys.path.append('/root/code/astro_web')
 
@@ -21,16 +22,6 @@ console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
 logger.setLevel(logging.DEBUG)
-
-# 创建日志记录器
-# logger = logging.getLogger('my_logger')
-# logger.setLevel(logging.DEBUG)
-# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# 
-# console_handler = logging.StreamHandler()
-# console_handler.setFormatter(formatter)
-# logger.addHandler(console_handler)
-
 
 
 DEBUG_BLACK_SET = {'ACTUAL_SERVER_PROTOCOL', 'PATH_INFO', 'QUERY_STRING', 'REMOTE_ADDR', 'REMOTE_PORT', 'REQUEST_METHOD', 'REQUEST_URI', 'SCRIPT_NAME', 'SERVER_NAME', 'SERVER_PROTOCOL', 'SERVER_SOFTWARE', 'wsgi.errors', 'wsgi.input', 'wsgi.input_terminated', 'wsgi.multiprocess', 'wsgi.multithread', 'wsgi.run_once', 'wsgi.url_scheme', 'wsgi.version', 'SERVER_PORT', 'HTTP_USER_AGENT', 'HTTP_ACCEPT', 'HTTP_HOST', 'HTTP_PRAGMA', 'CONTENT_TYPE', 'CONTENT_LENGTH'}
@@ -57,6 +48,11 @@ class Handle():
 
             init_context()
 
+            error_msg, birthday, dist, is_dst, toffset, location = common._prepare_http_data(content=content, name=recMsg.FromUserName)
+            folder_path = f'./cache/basic/{recMsg.FromUserName}'
+            dump_filename = f'{folder_path}/report_{recMsg.FromUserName}_{birthday}_{dist}.pkl'
+            get_or_dump_report(dump_filename)
+
             err, reply_str = common.basic_analyse(customer_name=recMsg.FromUserName, content=content)
             logger.debug('After basic_analyse.....')
             if err != '':
@@ -78,16 +74,6 @@ class Handle():
                     # logger.debug(f'sub_keys:{sub_keys}')
                     continue
 
-                # logger.debug(f'\nkey:{k}\tval:{v.values()}')
-
-            if False:
-                for star, star_obj in star_dict.items():
-                    print(f'{star_obj}')
-            
-                for k, v in house_dict.items():
-                    print(f'{v}')
-
-            logger.debug('0000000000000000000000000000000')
             report = []
             domain_vec = ['恋爱', '婚姻', '事业']
             for target in domain_vec:
@@ -123,6 +109,49 @@ class Handle():
             print(Argument)
             return Argument
 
+
+def get_or_dump_report(filename, load_key=''):
+    if load_key != '':
+        if not os.path.exists(filename):
+            return None
+
+        with open(filename, 'rb') as file:
+            all_trace_dict = pickle.load(file)
+
+            if load_key not in all_trace_dict:
+                logger.error(f'Load Pickle File Error!! Key:{load_key} not exists...')
+                return None
+
+            report = _gen_report(key=load_key, all_trace_dict=all_trace_dict)
+            return report
+
+    all_trace_dict = web.ctx.env['trace_info']
+    with open(filename, 'wb') as file:
+        pickle.dump(all_trace_dict, file)
+
+        return None
+
+
+def _gen_report(key: str, all_trace_dict) -> str:
+    report = []
+    report.append(f'『解析{key}』')
+
+    field_dict = all_trace_dict[key]
+
+    idx = -1
+    no_vec = ['一', '二', '三', '四', '五', '六', '七', '八']
+    for biz, sub_vec in field_dict.items():
+        idx += 1
+
+        if len(sub_vec) > 1:
+            sub_vec_with_numbers = [f"{i + 1}、{item}" for i, item in enumerate(sub_vec)]
+        else:
+            sub_vec_with_numbers = [f"{item}" for i, item in enumerate(sub_vec)]
+
+        msg = '\n'.join(sub_vec_with_numbers)
+        report.append(f'\n{no_vec[idx]}、{biz}: {msg}')
+
+    return '\n'.join(report)
 
 
 def init_context():
@@ -167,13 +196,14 @@ def init_context():
     marriage_trace_dict: Dict[str, List[str]] = {}
     work_trace_dict: Dict[str, List[str]] = {}
     asc_trace_dict: Dict[str, List[str]] = {}
+    study_trace_dict: Dict[str, List[str]] = {}
 
     all_trace_dict['灾星系统'] = disaster_trace_dict
     all_trace_dict['恋爱'] = love_trace_dict
     all_trace_dict['婚姻'] = marriage_trace_dict
     all_trace_dict['事业'] = work_trace_dict
-    all_trace_dict['上升点'] = asc_trace_dict 
-
+    all_trace_dict['上升点'] = asc_trace_dict
+    all_trace_dict['学业'] = study_trace_dict
 
     web.ctx.env['trace_info'] = all_trace_dict
 
@@ -181,7 +211,6 @@ def init_context():
 
     wealth_trace_dict: Dict[str, List[str]] = {}
     health_trace_dict: Dict[str, List[str]] = {}
-    study_trace_dict: Dict[str, List[str]] = {}
     nature_trace_dict: Dict[str, List[str]] = {}
 
 
@@ -191,6 +220,5 @@ urls = (
 )
 
 if __name__ == '__main__':
-
     app = web.application(urls, globals())
     app.run()

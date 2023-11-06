@@ -25,6 +25,7 @@ logger.addHandler(console_handler)
 
 logger.setLevel(logging.DEBUG)
 USE_CACHE = True
+KNOWLEDGE_KEY = 'knowledge_dict'
 
 
 class Recepted:
@@ -126,6 +127,7 @@ def basic_analyse(customer_name, content) -> Tuple[str, str]:
     parse_marrage_2()
     parse_marrage()
     parse_work()
+    parse_study()
 
     return error_msg, None
     # get_house_energy()
@@ -137,7 +139,6 @@ def basic_analyse(customer_name, content) -> Tuple[str, str]:
     # print('----------------------------')
 
 
-    # parse_study()
     # parse_nature()
     #
     # ret_vec = []
@@ -163,13 +164,47 @@ def basic_analyse(customer_name, content) -> Tuple[str, str]:
     #             ret_vec.append(f'{index}、{sub}')
 
 
+def parse_study():
+    # 解析：初等学业、高等学业
+    is_debug = web.ctx.env['is_debug']
+    star_dict = web.ctx.env["star_dict"]
+    house_dict = web.ctx.env["house_dict"]
+    knowledge_dict = web.ctx.env[KNOWLEDGE_KEY]
+
+    ruler_3 = house_dict[3].ruler
+    ruler_9 = house_dict[9].ruler
+
+    ruler_3_house = star_dict[ruler_3].house
+    ruler_9_house = star_dict[ruler_9].house
+
+    key3 = f'3飞{ruler_3_house}'
+    key9 = f'9飞{ruler_9_house}'
+    junior_desc = knowledge_dict['初等学业飞星'][key3]
+    senior_desc = knowledge_dict['高等学业飞星'][key9]
+
+    set_trace_info('学业', '高中前', [junior_desc])
+    set_trace_info('学业', '高中后', [senior_desc])
+
+    # 3、9宫落⭐️
+    star_in_3 = house_dict[3].loc_star
+    star_in_9 = house_dict[9].loc_star
+
+    for id in [3, 9]:
+        for s in house_dict[id].loc_star:
+            key = f'{s}{id}宫'
+
+            sub_dict = knowledge_dict['初等学业飞星'] if id == 3 else knowledge_dict['高等学业飞星']
+
+            if id == 3 and key in sub_dict:
+                set_trace_info('学业', '高中前', [sub_dict[key]])
+            elif id == 9 and key in sub_dict:
+                set_trace_info('学业', '高中后', [sub_dict[key]])
+
 def parse_asc_star():
     is_debug = web.ctx.env['is_debug']
     star_dict = web.ctx.env["star_dict"]
     house_dict = web.ctx.env["house_dict"]
-    logger.debug('111111111111111111111111')
-    knowledge_dict = web.ctx.env['knowledge_dict']
-    logger.debug('1222222222222222222222222')
+    knowledge_dict = web.ctx.env[KNOWLEDGE_KEY]
 
     # 解析命主星落宫
     asc_star = house_dict[1].ruler
@@ -580,8 +615,11 @@ def set_trace_info(key, sub_key, msg_vec):
     if key not in web.ctx.env['trace_info']:
         logger.error(f'{key} not in web.ctx.env.trace_info...')
 
-    web.ctx.env['trace_info'][key][sub_key] = msg_vec
+    if key in web.ctx.env['trace_info'] and sub_key in web.ctx.env['trace_info'][key]:
+        web.ctx.env['trace_info'][key][sub_key].extend(msg_vec)
+        return
 
+    web.ctx.env['trace_info'][key][sub_key] = msg_vec
 
 
 def _get_basic_soup_from_http(customer_name, content) -> Tuple[str, BeautifulSoup, BeautifulSoup]:
@@ -589,10 +627,11 @@ def _get_basic_soup_from_http(customer_name, content) -> Tuple[str, BeautifulSou
     folder_path = f'./cache/basic/{customer_name}'
     os.makedirs(folder_path, exist_ok=True)
 
-    """ ixingpan Http Result. 有 cache 文件则从文件加载，没有走 http 请求 """
-    filename_ixingpan = f'{folder_path}/{customer_name}_ixingpan.pickle'
-
     error_msg, birthday, dist, is_dst, toffset, location = _prepare_http_data(content=content, name=customer_name)
+
+    """ ixingpan Http Result. 有 cache 文件则从文件加载，没有走 http 请求 """
+    filename_ixingpan = f'{folder_path}/{customer_name}_{birthday}_{dist}_ixingpan.pickle'
+
     if error_msg != '':
         return error_msg, None, None
 
@@ -610,7 +649,7 @@ def _get_basic_soup_from_http(customer_name, content) -> Tuple[str, BeautifulSou
         return err_no, None, None
 
     """ almuten Http Result. """
-    filename_almuten = f'{folder_path }/{customer_name}_almuten.pickle'
+    filename_almuten = f'{folder_path }/{customer_name}_{birthday}_{dist}_almuten.pickle'
 
     if USE_CACHE and os.path.exists(filename_almuten):
         soup_almuten = _dump_or_load_http_result(filename=filename_almuten, is_load_mode=True)
