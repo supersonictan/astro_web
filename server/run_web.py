@@ -54,7 +54,8 @@ class Handle():
                 return replyMsg.send()
 
             folder_path = f'./cache/basic/{recMsg.FromUserName}'
-            dump_filename = f'{folder_path}/report_{recMsg.FromUserName}_{birthday}_{dist}.pkl'
+            birthday_concat = birthday.replace(" ", "").replace(":", "").replace("-", "")
+            dump_filename = f'{folder_path}/report_{recMsg.FromUserName}_{birthday_concat}_{dist}.pkl'
 
             # 非第一轮对话：读pkl，并返回对应结果
             if content in {'1', '2', '3', '4', '5', '6', '7'}:
@@ -70,10 +71,12 @@ class Handle():
             # 第一轮对话，先check缓存
             report = get_and_dump_report(dump_filename, load_key='', is_load=True)
             if report is not None:
+                logger.debug('第一轮对话，缓存未命中')
                 ret = append_msg(report)
                 replyMsg = reply.TextMsg(toUser, fromUser, ret)
                 return replyMsg.send()
 
+            logger.debug('第一轮对话，查http')
             err, reply_str = common.basic_analyse(customer_name=recMsg.FromUserName, content=content)
             logger.debug('After basic_analyse.....')
             if err != '':
@@ -118,28 +121,32 @@ def get_and_dump_report(filename, load_key='', is_load=True):
             return report
 
     if is_load:
+        logger.debug(f'尝试加载缓存文件...')
         if not os.path.exists(filename):
-            logger.error(f'文件:{filename} 不存在... 将走排盘逻辑')
+            logger.debug(f'文件:{filename} 不存在... 将走排盘逻辑')
             return None
 
         with open(filename, 'rb') as file:
             all_trace_dict = pickle.load(file)
-            return all_trace_dict['上升点']
+            return _gen_report(key='上升点', all_trace_dict=all_trace_dict)
 
     all_trace_dict = web.ctx.env['trace_info']
 
     if os.path.exists(filename):
-        return all_trace_dict['上升点']
+        logger.debug(f'找到缓存文件...')
+        return _gen_report(key='上升点', all_trace_dict=all_trace_dict)
 
     with open(filename, 'wb') as file:
         pickle.dump(all_trace_dict, file)
 
+        logger.debug(f'before _gen_report...')
         report = _gen_report(key='上升点', all_trace_dict=all_trace_dict)
 
         return report
 
 
 def _gen_report(key: str, all_trace_dict) -> str:
+    logger.debug(f'_gen_report...')
     report = []
     report.append(f'『解析{key}』')
 
