@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 from typing import Dict, List, Tuple
+from enum import Enum
 import web
 import json
 import datetime
 import os
 import requests
 import re
-from enum import Enum
 from bs4 import BeautifulSoup
 import configparser
 import cpca
@@ -24,8 +24,43 @@ logger.addHandler(console_handler)
 
 
 logger.setLevel(logging.DEBUG)
-USE_CACHE = True
+# USE_CACHE = True
 KNOWLEDGE_KEY = 'knowledge_dict'
+
+class Const(Enum):
+    FROMUSER, TOUSER, CONTENT = 'from_user', 'to_user', 'content'
+
+    FOLDERPATH = 'folder_path'
+    FILENAME_REPORT, FILENAME_REQ, FILENAME_SOUP1, FILENAME_SOUP2 = 'file_report', 'file_req', 'file_soup1', 'file_soup2'
+    HAS_REQ_FILE = 'has_req_file'
+    HAS_REPORT_FILE = 'has_report_file'
+    HAS_SOUP1_FILE = 'has_soup1_file'
+    HAS_SOUP2_FILE = 'has_soup2_file'
+
+    FILE_KEY_REPORT = 'file_key_report'
+
+    SESSION_KEY_TRACE = 'trace_info'
+    SESS_KEY_STAR, SESS_KEY_HOUSE, SESS_KEY_KNOWLEDGE = 'star_dict', 'house_dict', 'knowledge_dict'
+    IS_INPUT_NUM = 'is_input_num'
+
+    BIRTHDAY_KEY = 'birthday'
+    BIRTHDAY_KEY2 = 'birthday2'
+    DIST_KEY = 'dist'
+    IS_DST_KEY = 'is_dst'
+    TOFFSET_KEY = 'toffset'
+    LOCATION_KEY = 'location'
+
+    NUM_WHITELIST = {'1', '2', '3', '4', '5', '6', '7'}
+    ERROR = 'error_code'
+    COMMON_ERR_MSG = 'Sorry~ 当前访问人数过多，请稍后再试...'
+
+    DomainStudy = '学业'
+    DomainAsc = '外在表现'
+    DomainLove = '恋爱'
+    DomainMarriage = '婚姻'
+    DomainWork = '事业'
+    DomainHealth = '健康'
+    DomainMoney = '财富'
 
 
 class Recepted:
@@ -105,12 +140,13 @@ class House:
         return f'{self.house_num}宫主{self.ruler} 落{self.ruler_loc}宫, {self.house_num}宫宫内落星:{self.loc_star}, 宫头星座:{self.constellation}'
 
 
-def basic_analyse(customer_name, content) -> Tuple[str, str]:
+def basic_analyse(customer_name, content) -> Tuple[str, BeautifulSoup, BeautifulSoup]:
     logger.debug('-------------- invoke basic_analyse --------------------')
+    soup_ixingpan, soup_almuten = None, None
     error_msg, soup_ixingpan, soup_almuten = _get_basic_soup_from_http(customer_name=customer_name, content=content)
 
     if error_msg != '':
-        return error_msg, None
+        return error_msg, soup_ixingpan, soup_almuten
 
     # 解析宫神星网结果
     _parse_almuten_star(soup_almuten)
@@ -129,7 +165,7 @@ def basic_analyse(customer_name, content) -> Tuple[str, str]:
     parse_work()
     parse_study()
 
-    return error_msg, None
+    return error_msg, soup_ixingpan, soup_almuten
     # get_house_energy()
 
 
@@ -624,24 +660,14 @@ def set_trace_info(key, sub_key, msg_vec):
 
 def _get_basic_soup_from_http(customer_name, content) -> Tuple[str, BeautifulSoup, BeautifulSoup]:
     logger.debug('---------------invoke get_basic_soup_from_http ---------------------')
-    folder_path = f'./cache/basic/{customer_name}'
-    os.makedirs(folder_path, exist_ok=True)
-
     error_msg, birthday, dist, is_dst, toffset, location = _prepare_http_data(content=content, name=customer_name)
 
-    """ ixingpan Http Result. 有 cache 文件则从文件加载，没有走 http 请求 """
-    filename_ixingpan = f'{folder_path}/{customer_name}_{birthday}_{dist}_ixingpan.pickle'
-
+    """ ixingpan Http Result. """
     if error_msg != '':
         return error_msg, None, None
 
-    if USE_CACHE and os.path.exists(filename_ixingpan):
-        soup_ixingpan = _dump_or_load_http_result(filename=filename_ixingpan, is_load_mode=True)
-        logger.info(f'成功从本地加载本命盘数据，File=[{filename_ixingpan}]')
-    else:
-        soup_ixingpan = _fetch_ixingpan_soup(name=customer_name, dist=dist, birthday_time=birthday, dst=is_dst, female=1)
-        _dump_or_load_http_result(filename=filename_ixingpan, soup_obj=soup_ixingpan, is_load_mode=False)
-        logger.info(f'走Http请求获取爱星盘排盘信息，并且 Dump BeautifulSoup to File:{filename_ixingpan}')
+    soup_ixingpan = _fetch_ixingpan_soup(name=customer_name, dist=dist, birthday_time=birthday, dst=is_dst, female=1)
+    logger.debug('成功通过HTTP获取「爱星盘」排盘信息...')
 
     # Update 宫神星要用到的:glon_deg, glat_deg. 取自ixingpan结果中的
     err_no, glon_deg, glat_deg = _parse_glon_glat(soup=soup_ixingpan)
@@ -649,17 +675,9 @@ def _get_basic_soup_from_http(customer_name, content) -> Tuple[str, BeautifulSou
         return err_no, None, None
 
     """ almuten Http Result. """
-    filename_almuten = f'{folder_path }/{customer_name}_{birthday}_{dist}_almuten.pickle'
-
-    if USE_CACHE and os.path.exists(filename_almuten):
-        soup_almuten = _dump_or_load_http_result(filename=filename_almuten, is_load_mode=True)
-        logger.info(f'成功从本地加载本命盘数据，File=[{filename_almuten}]')
-    else:
-        post_data = _build_almuten_http_data(name=customer_name, birthinfo=birthday, loc=location, glon_deg=glon_deg, glat_deg=glat_deg, toffset=toffset, is_dst=is_dst)
-        soup_almuten = _fetch_almuten_soup(post_data)
-
-        _dump_or_load_http_result(filename=filename_almuten, soup_obj=soup_almuten, is_load_mode=False)
-        logger.info(f'走Http请求获取「宫神星」排盘信息，并且 Dump BeautifulSoup to File:{filename_almuten}')
+    post_data = _build_almuten_http_data(name=customer_name, birthinfo=birthday, loc=location, glon_deg=glon_deg, glat_deg=glat_deg, toffset=toffset, is_dst=is_dst)
+    soup_almuten = _fetch_almuten_soup(post_data)
+    logger.debug(f'成功通过HTTP获取「宫神星」排盘信息')
 
     return error_msg, soup_ixingpan, soup_almuten
 
@@ -1212,4 +1230,193 @@ def get_square():
 
     web.ctx.env['trace_info']['灾星系统']['盘主灾星信息'] = trace_square_vec
 
+
+def build_result(domain=Const.DomainAsc):
+    trace_dict = get_session(Const.SESSION_KEY_TRACE)
+    if domain not in trace_dict:
+        logger.warning(f'解析失败！trace_dict 不存在 key:{domain}')
+        set_session(Const.ERROR, Const.COMMON_ERR_MSG)
+        return
+
+    report = []
+    report.append(f'『解析{domain}』')
+    field_dict = trace_dict[domain]
+
+    idx = -1
+    no_vec = ['一', '二', '三', '四', '五', '六', '七', '八']
+    for biz, sub_vec in field_dict.items():
+        idx += 1
+
+        if len(sub_vec) > 1:
+            sub_vec_with_numbers = [f"{i + 1}、{item}" for i, item in enumerate(sub_vec)]
+        else:
+            sub_vec_with_numbers = [f"{item}" for i, item in enumerate(sub_vec)]
+
+        msg = '\n'.join(sub_vec_with_numbers)
+        report.append(f'\n{no_vec[idx]}、{biz}: {msg}')
+
+    msg1 = '\n'.join(report)
+    msg2 = get_more_result()
+    ret = f'{msg1}\n{msg2}'
+
+    return ret
+
+
+index_dict = {'1': Const.DomainAsc, '2': Const.DomainLove, '3': Const.DomainMarriage, '4': Const.DomainStudy,
+              '5': Const.DomainWork, '6': Const.DomainHealth, '8':Const.DomainMoney}
+
+
+def get_more_result():
+    msg = '更多解析请回复：'
+    index_str = '\n'.join([f"{key}: {value}" for key, value in index_dict.items()])
+    return index_str
+
+
+# --------------------------- get set session 变量-----------------
+def get_session(key):
+    if key not in web.ctx.env:
+        logger.warning(f'get_sess error, key:{key} not exists...')
+        return None
+
+    return web.ctx.env[key]
+
+
+def set_session(key, val):
+    web.ctx.env[key] = val
+
+# ----------------------------- 各种 init -------------------------
+def init_session():
+    """
+    加载文件、初始化context字典
+    session变量：
+        文件名：
+        是否cache
+        用户dist、brithday等信息
+    """
+    init_knowledge_dict()
+    logger.debug('成功加载字典文件...')
+
+    init_trace()
+    logger.debug('成功初始化trace变量...')
+
+    """ Init birthday, dist, location(province, city, area) """
+    init_user_attri()
+    if get_session(Const.ERROR) != '':
+        return
+    logger.debug('成功解析用户消息中的生日等属性信息...')
+
+    """ Init 文件名 & 检测缓存文件 """
+    init_check_cache()
+    logger.debug('成功初始化缓存文件名、缓存是否存在变量...')
+
+
+def init_knowledge_dict():
+    knowledge_dict: Dict[str, Dict[str, str]] = {}
+
+    def _load_knowledge_file():
+        # Load knowledge_web.ini
+        config = configparser.ConfigParser()
+
+        file_name = './file/knowledge_web.ini'
+        config.read(file_name)
+
+        # 遍历指定section的所有option
+        for section_name in config.sections():
+            for option_name in config.options(section_name):
+                value = config.get(section_name, option_name)
+
+                if section_name in knowledge_dict:
+                    knowledge_dict[section_name][option_name] = value
+                else:
+                    knowledge_dict[section_name] = {option_name: value}
+
+    _load_knowledge_file()
+    set_session(Const.SESS_KEY_KNOWLEDGE, knowledge_dict)
+
+
+def init_trace():
+    if Const.SESS_KEY_STAR not in web.ctx.env:
+        star_dict: Dict[str, Star] = {}
+        set_session(Const.SESS_KEY_STAR, star_dict)
+
+    if Const.SESS_KEY_HOUSE not in web.ctx.env:
+        house_dict: Dict[int, House] = {}
+        set_session(Const.SESS_KEY_HOUSE, house_dict)
+
+    all_trace_dict: Dict[str, Dict[str, List[str]]] = {}
+
+    disaster_trace_dict: Dict[str, List[str]] = {}
+    love_trace_dict: Dict[str, List[str]] = {}
+    marriage_trace_dict: Dict[str, List[str]] = {}
+    work_trace_dict: Dict[str, List[str]] = {}
+    asc_trace_dict: Dict[str, List[str]] = {}
+    study_trace_dict: Dict[str, List[str]] = {}
+
+    all_trace_dict['灾星系统'] = disaster_trace_dict
+    all_trace_dict['恋爱'] = love_trace_dict
+    all_trace_dict['婚姻'] = marriage_trace_dict
+    all_trace_dict['事业'] = work_trace_dict
+    all_trace_dict['上升点'] = asc_trace_dict
+    all_trace_dict['学业'] = study_trace_dict
+
+    # web.ctx.env['trace_info'] = all_trace_dict
+    set_session(Const.SESSION_KEY_TRACE, all_trace_dict)
+
+    web.ctx.env['is_debug'] = False
+
+    wealth_trace_dict: Dict[str, List[str]] = {}
+    health_trace_dict: Dict[str, List[str]] = {}
+    nature_trace_dict: Dict[str, List[str]] = {}
+
+
+def init_user_attri():
+    content = get_session(Const.CONTENT)
+    if content in Const.NUM_WHITELIST:
+        set_session(Const.IS_INPUT_NUM, True)
+    else:
+        err, birthday, dist, is_dst, toffset, location = _prepare_http_data(content=get_session(Const.CONTENT), name=get_session(Const.FROMUSER))
+        if err != '':
+            set_session(Const.ERROR, '【排盘失败】\n, 请重新输入...')
+            return
+
+        set_session(Const.BIRTHDAY_KEY, birthday)
+        set_session(Const.DIST_KEY, dist)
+        set_session(Const.IS_DST_KEY, is_dst)
+        set_session(Const.TOFFSET_KEY, toffset)
+        set_session(Const.LOCATION_KEY, location)
+
+        birthday_concat = birthday.replace(" ", "").replace(":", "").replace("-", "")
+        set_session(Const.BIRTHDAY_KEY2, birthday_concat)
+
+
+def init_check_cache():
+    filename_report, filename_req, filename_soup1, filename_soup2 = None, None, None, None
+    content, from_user = get_session(Const.CONTENT), get_session(Const.FROMUSER)
+
+    folder_path = f'./cache/basic/{from_user}'
+    set_session(Const.FOLDERPATH, folder_path)
+
+    filename_req = f'{folder_path}/request.log'
+    filename_report = f'{folder_path}/report_{from_user}_{Const.BIRTHDAY_KEY2}_{Const.DIST_KEY}.pkl'
+    filename_soup1 = f'{folder_path}/soup_{from_user}_{Const.BIRTHDAY_KEY2}_{Const.DIST_KEY}_almuten.pickle'
+    filename_soup2 = f'{folder_path}/soup_{from_user}_{Const.BIRTHDAY_KEY2}_{Const.DIST_KEY}_ixingpan.pickle'
+
+    set_session(Const.FILENAME_REQ, filename_req)
+    set_session(Const.FILENAME_REPORT, filename_report)
+    set_session(Const.FILENAME_SOUP1, filename_soup1)
+    set_session(Const.FILENAME_SOUP2, filename_soup2)
+
+    # check 文件存在否
+    a = [Const.HAS_REQ_FILE, Const.HAS_REPORT_FILE, Const.HAS_SOUP1_FILE, Const.HAS_SOUP2_FILE]
+    b = [filename_req, filename_report, filename_soup1, filename_soup2]
+    for k, v in zip(a, b):
+        b = True if os.path.exists(v) else False
+        set_session(k, b)
+
+    if get_session(Const.HAS_REPORT_FILE):
+        with open(get_session(Const.FILENAME_REPORT), 'rb') as file:
+            all_trace_dict = pickle.load(file)
+
+            set_session(Const.SESSION_KEY_TRACE, all_trace_dict)
+            logger.debug(f'成功从[{get_session(Const.FILENAME_REPORT)}] 加载 all_trace_dict')
 
