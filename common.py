@@ -27,6 +27,8 @@ logger.setLevel(logging.DEBUG)
 # USE_CACHE = True
 KNOWLEDGE_KEY = 'knowledge_dict'
 
+NUM_WHITELIST = {'1', '2', '3', '4', '5', '6', '7'}
+
 class Const(Enum):
     FROMUSER, TOUSER, CONTENT = 'from_user', 'to_user', 'content'
 
@@ -1386,7 +1388,7 @@ def init_trace():
 
 def init_user_attri():
     content = get_session(Const.CONTENT)
-    if content in Const.NUM_WHITELIST:
+    if content in NUM_WHITELIST:
         set_session(Const.IS_INPUT_NUM, True)
     else:
         err, birthday, dist, is_dst, toffset, location = _prepare_http_data(content=get_session(Const.CONTENT), name=get_session(Const.FROMUSER))

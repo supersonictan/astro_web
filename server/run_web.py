@@ -20,7 +20,7 @@ import logging
 import reply
 import receive
 
-logger = logging.getLogger('run_web_bak.py')
+logger = logging.getLogger('run_web.py')
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(formatter)
@@ -37,7 +37,6 @@ class Handle():
         try:
             set_session(Const.ERROR, '')
             webData = web.data()
-            logger.debug(f"Handle Post webdata is {webData}")
 
             recMsg, from_user, to_user, content = parse_request_data(webData=webData)
             if not (isinstance(recMsg, receive.Msg) and recMsg != 'text'):
