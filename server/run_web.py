@@ -15,7 +15,7 @@ from common import build_result
 from common import basic_analyse
 from common import get_session, set_session
 from common import init_session
-from common import Const
+from Const import *
 import logging
 import reply
 import receive
@@ -35,7 +35,7 @@ ID_SET_WHITELIST = {'1', '2', '3', '4', '5', '6', '7'}
 class Handle():
     def POST(self):
         try:
-            set_session(Const.ERROR, '')
+            set_session(ERROR, '')
             webData = web.data()
 
             recMsg, from_user, to_user, content = parse_request_data(webData=webData)
@@ -45,20 +45,20 @@ class Handle():
 
             # 加载文件、初始化存结果的dict
             init_session()
-            if get_session(Const.ERROR) != '':
-                replyMsg = reply.TextMsg(from_user, to_user, get_session(Const.ERROR))
+            if get_session(ERROR) != '':
+                replyMsg = reply.TextMsg(from_user, to_user, get_session(ERROR))
                 return replyMsg.send()
 
             # 非数字 & 有缓存 --> 返回缓存结果
-            if get_session(Const.HAS_REPORT_FILE) and not get_session(Const.IS_INPUT_NUM):
+            if get_session(HAS_REPORT_FILE) and not get_session(IS_INPUT_NUM):
                 reply_str = build_result()
                 replyMsg = reply.TextMsg(from_user, to_user, reply_str)
                 return replyMsg.send()
-            elif not get_session(Const.IS_INPUT_NUM) and not get_session(Const.HAS_REPORT_FILE):
+            elif not get_session(IS_INPUT_NUM) and not get_session(HAS_REPORT_FILE):
                 # 非数字 & 无缓存 --> http咯
                 basic_analyse()
-                if get_session(Const.ERROR) != '':
-                    reply_str = get_session(Const.ERROR)
+                if get_session(ERROR) != '':
+                    reply_str = get_session(ERROR)
                 else:
                     reply_str = build_result()
 
@@ -86,11 +86,11 @@ def parse_request_data(webData):
     fromUser = recMsg.FromUserName
     content = recMsg.Content.decode('utf-8')
 
-    set_session(Const.TOUSER, toUser)
-    set_session(Const.FROMUSER, fromUser)
-    set_session(Const.CONTENT, content)
+    set_session(TOUSER, toUser)
+    set_session(FROMUSER, fromUser)
+    set_session(CONTENT, content)
 
-    logger.debug(f'----------> FromUser:{get_session(Const.FROMUSER)} ToUser:{get_session(Const.TOUSER)} Content:{get_session(Const.CONTENT)}')
+    logger.debug(f'----------> FromUser:{get_session(FROMUSER)} ToUser:{get_session(TOUSER)} Content:{get_session(CONTENT)}')
 
     return recMsg, fromUser, toUser, content
 

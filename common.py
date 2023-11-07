@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from typing import Dict, List, Tuple
-from enum import Enum
 import web
 import json
 import datetime
@@ -13,6 +12,7 @@ import cpca
 
 import logging
 import pickle
+from Const import *
 
 
 # 创建日志记录器
@@ -28,41 +28,6 @@ logger.setLevel(logging.DEBUG)
 KNOWLEDGE_KEY = 'knowledge_dict'
 
 NUM_WHITELIST = {'1', '2', '3', '4', '5', '6', '7'}
-
-class Const(Enum):
-    FROMUSER, TOUSER, CONTENT = 'from_user', 'to_user', 'content'
-
-    FOLDERPATH = 'folder_path'
-    FILENAME_REPORT, FILENAME_REQ, FILENAME_SOUP1, FILENAME_SOUP2 = 'file_report', 'file_req', 'file_soup1', 'file_soup2'
-    HAS_REQ_FILE = 'has_req_file'
-    HAS_REPORT_FILE = 'has_report_file'
-    HAS_SOUP1_FILE = 'has_soup1_file'
-    HAS_SOUP2_FILE = 'has_soup2_file'
-
-    FILE_KEY_REPORT = 'file_key_report'
-
-    SESSION_KEY_TRACE = 'trace_info'
-    SESS_KEY_STAR, SESS_KEY_HOUSE, SESS_KEY_KNOWLEDGE = 'star_dict', 'house_dict', 'knowledge_dict'
-    IS_INPUT_NUM = 'is_input_num'
-
-    BIRTHDAY_KEY = 'birthday'
-    BIRTHDAY_KEY2 = 'birthday2'
-    DIST_KEY = 'dist'
-    IS_DST_KEY = 'is_dst'
-    TOFFSET_KEY = 'toffset'
-    LOCATION_KEY = 'location'
-
-    NUM_WHITELIST = {'1', '2', '3', '4', '5', '6', '7'}
-    ERROR = 'error_code'
-    COMMON_ERR_MSG = 'Sorry~ 当前访问人数过多，请稍后再试...'
-
-    DomainStudy = '学业'
-    DomainAsc = '外在表现'
-    DomainLove = '恋爱'
-    DomainMarriage = '婚姻'
-    DomainWork = '事业'
-    DomainHealth = '健康'
-    DomainMoney = '财富'
 
 
 class Recepted:
@@ -144,18 +109,18 @@ class House:
 
 def basic_analyse():
     logger.debug('-------------- invoke basic_analyse --------------------')
-    customer_name = get_session(Const.FROMUSER)
-    content = get_session(Const.CONTENT)
+    customer_name = get_session(FROMUSER)
+    content = get_session(CONTENT)
 
     soup_ixingpan, soup_almuten = None, None
     error_msg, soup_ixingpan, soup_almuten = _get_basic_soup_from_http(customer_name=customer_name, content=content)
     if error_msg != '':
-        set_session(Const.ERROR, Const.COMMON_ERR_MSG)
+        set_session(ERROR, COMMON_ERR_MSG)
         logger.error(f'basic_analyse._get_basic_soup_from_http 执行失败，err={error_msg}')
         return
 
-    dump_obj(soup_ixingpan, Const.FILENAME_SOUP1)
-    dump_obj(soup_almuten, Const.FILENAME_SOUP2)
+    dump_obj(soup_ixingpan, FILENAME_SOUP1)
+    dump_obj(soup_almuten, FILENAME_SOUP2)
 
     # 解析宫神星网结果
     _parse_almuten_star(soup_almuten)
@@ -174,7 +139,7 @@ def basic_analyse():
     parse_work()
     parse_study()
 
-    dump_obj(get_session(Const.SESSION_KEY_TRACE), Const.FILENAME_REPORT)
+    dump_obj(get_session(SESSION_KEY_TRACE), FILENAME_REPORT)
     # return error_msg, soup_ixingpan, soup_almuten
     # get_house_energy()
 
@@ -1249,11 +1214,11 @@ def dump_obj(obj, filepath):
 
 
 # ------------------------- 生成返回结果 ---------------------
-def build_result(domain=Const.DomainAsc):
-    trace_dict = get_session(Const.SESSION_KEY_TRACE)
+def build_result(domain=DomainAsc):
+    trace_dict = get_session(SESSION_KEY_TRACE)
     if domain not in trace_dict:
         logger.warning(f'解析失败！trace_dict 不存在 key:{domain}')
-        set_session(Const.ERROR, Const.COMMON_ERR_MSG)
+        set_session(ERROR, COMMON_ERR_MSG)
         return
 
     report = []
@@ -1280,13 +1245,13 @@ def build_result(domain=Const.DomainAsc):
     return ret
 
 
-index_dict = {'1': Const.DomainAsc, '2': Const.DomainLove, '3': Const.DomainMarriage, '4': Const.DomainStudy,
-              '5': Const.DomainWork, '6': Const.DomainHealth, '8':Const.DomainMoney}
+index_dict = {'1': DomainAsc, '2': DomainLove, '3': DomainMarriage, '4': DomainStudy,
+              '5': DomainWork, '6': DomainHealth, '8':DomainMoney}
 
 def get_more_result():
     msg = '更多解析请回复：\n'
     index_str = '\n'.join([f"{key}: {value}" for key, value in index_dict.items()])
-    return ''.join(msg, index_str)
+    return ''.join([msg, index_str])
 
 
 # --------------------------- get set session 变量-----------------
@@ -1318,7 +1283,7 @@ def init_session():
 
     """ Init birthday, dist, location(province, city, area) """
     init_user_attri()
-    if get_session(Const.ERROR) != '':
+    if get_session(ERROR) != '':
         return
     logger.debug('成功解析用户消息中的生日等属性信息...')
 
@@ -1348,17 +1313,17 @@ def init_knowledge_dict():
                     knowledge_dict[section_name] = {option_name: value}
 
     _load_knowledge_file()
-    set_session(Const.SESS_KEY_KNOWLEDGE, knowledge_dict)
+    set_session(SESS_KEY_KNOWLEDGE, knowledge_dict)
 
 
 def init_trace():
-    if Const.SESS_KEY_STAR not in web.ctx.env:
+    if SESS_KEY_STAR not in web.ctx.env:
         star_dict: Dict[str, Star] = {}
-        set_session(Const.SESS_KEY_STAR, star_dict)
+        set_session(SESS_KEY_STAR, star_dict)
 
-    if Const.SESS_KEY_HOUSE not in web.ctx.env:
+    if SESS_KEY_HOUSE not in web.ctx.env:
         house_dict: Dict[int, House] = {}
-        set_session(Const.SESS_KEY_HOUSE, house_dict)
+        set_session(SESS_KEY_HOUSE, house_dict)
 
     all_trace_dict: Dict[str, Dict[str, List[str]]] = {}
 
@@ -1377,7 +1342,7 @@ def init_trace():
     all_trace_dict['学业'] = study_trace_dict
 
     # web.ctx.env['trace_info'] = all_trace_dict
-    set_session(Const.SESSION_KEY_TRACE, all_trace_dict)
+    set_session(SESSION_KEY_TRACE, all_trace_dict)
 
     web.ctx.env['is_debug'] = False
 
@@ -1387,53 +1352,53 @@ def init_trace():
 
 
 def init_user_attri():
-    content = get_session(Const.CONTENT)
+    content = get_session(CONTENT)
     if content in NUM_WHITELIST:
-        set_session(Const.IS_INPUT_NUM, True)
+        set_session(IS_INPUT_NUM, True)
     else:
-        err, birthday, dist, is_dst, toffset, location = _prepare_http_data(content=get_session(Const.CONTENT), name=get_session(Const.FROMUSER))
+        err, birthday, dist, is_dst, toffset, location = _prepare_http_data(content=get_session(CONTENT), name=get_session(FROMUSER))
         if err != '':
-            set_session(Const.ERROR, '【排盘失败】\n, 请重新输入...')
+            set_session(ERROR, '【排盘失败】\n, 请重新输入...')
             return
 
-        set_session(Const.BIRTHDAY_KEY, birthday)
-        set_session(Const.DIST_KEY, dist)
-        set_session(Const.IS_DST_KEY, is_dst)
-        set_session(Const.TOFFSET_KEY, toffset)
-        set_session(Const.LOCATION_KEY, location)
+        set_session(BIRTHDAY_KEY, birthday)
+        set_session(DIST_KEY, dist)
+        set_session(IS_DST_KEY, is_dst)
+        set_session(TOFFSET_KEY, toffset)
+        set_session(LOCATION_KEY, location)
 
         birthday_concat = birthday.replace(" ", "").replace(":", "").replace("-", "")
-        set_session(Const.BIRTHDAY_KEY2, birthday_concat)
+        set_session(BIRTHDAY_KEY2, birthday_concat)
 
 
 def init_check_cache():
     filename_report, filename_req, filename_soup1, filename_soup2 = None, None, None, None
-    content, from_user = get_session(Const.CONTENT), get_session(Const.FROMUSER)
+    content, from_user = get_session(CONTENT), get_session(FROMUSER)
 
     folder_path = f'./cache/basic/{from_user}'
-    set_session(Const.FOLDERPATH, folder_path)
+    set_session(FOLDERPATH, folder_path)
 
     filename_req = f'{folder_path}/request.log'
-    filename_report = f'{folder_path}/report_{from_user}_{Const.BIRTHDAY_KEY2}_{Const.DIST_KEY}.pkl'
-    filename_soup1 = f'{folder_path}/soup_{from_user}_{Const.BIRTHDAY_KEY2}_{Const.DIST_KEY}_almuten.pickle'
-    filename_soup2 = f'{folder_path}/soup_{from_user}_{Const.BIRTHDAY_KEY2}_{Const.DIST_KEY}_ixingpan.pickle'
+    filename_report = f'{folder_path}/report_{from_user}_{BIRTHDAY_KEY2}_{DIST_KEY}.pkl'
+    filename_soup1 = f'{folder_path}/soup_{from_user}_{BIRTHDAY_KEY2}_{DIST_KEY}_almuten.pickle'
+    filename_soup2 = f'{folder_path}/soup_{from_user}_{BIRTHDAY_KEY2}_{DIST_KEY}_ixingpan.pickle'
 
-    set_session(Const.FILENAME_REQ, filename_req)
-    set_session(Const.FILENAME_REPORT, filename_report)
-    set_session(Const.FILENAME_SOUP1, filename_soup1)
-    set_session(Const.FILENAME_SOUP2, filename_soup2)
+    set_session(FILENAME_REQ, filename_req)
+    set_session(FILENAME_REPORT, filename_report)
+    set_session(FILENAME_SOUP1, filename_soup1)
+    set_session(FILENAME_SOUP2, filename_soup2)
 
     # check 文件存在否
-    a = [Const.HAS_REQ_FILE, Const.HAS_REPORT_FILE, Const.HAS_SOUP1_FILE, Const.HAS_SOUP2_FILE]
+    a = [HAS_REQ_FILE, HAS_REPORT_FILE, HAS_SOUP1_FILE, HAS_SOUP2_FILE]
     b = [filename_req, filename_report, filename_soup1, filename_soup2]
     for k, v in zip(a, b):
         b = True if os.path.exists(v) else False
         set_session(k, b)
 
-    if get_session(Const.HAS_REPORT_FILE):
-        with open(get_session(Const.FILENAME_REPORT), 'rb') as file:
+    if get_session(HAS_REPORT_FILE):
+        with open(get_session(FILENAME_REPORT), 'rb') as file:
             all_trace_dict = pickle.load(file)
 
-            set_session(Const.SESSION_KEY_TRACE, all_trace_dict)
-            logger.debug(f'成功从[{get_session(Const.FILENAME_REPORT)}] 加载 all_trace_dict')
+            set_session(SESSION_KEY_TRACE, all_trace_dict)
+            logger.debug(f'成功从[{get_session(FILENAME_REPORT)}] 加载 all_trace_dict')
 
