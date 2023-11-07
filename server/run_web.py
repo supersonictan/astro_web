@@ -64,6 +64,15 @@ class Handle():
 
                 replyMsg = reply.TextMsg(from_user, to_user, reply_str)
                 return replyMsg.send()
+            elif get_session(IS_INPUT_NUM) and get_session(HAS_REPORT_FILE):
+                # 数字 & 有缓存 --> 返回缓存结果
+                reply_str = build_result(get_session(TargetDomain))
+                replyMsg = reply.TextMsg(from_user, to_user, reply_str)
+                return replyMsg.send()
+            elif get_session(IS_INPUT_NUM) and not get_session(HAS_REPORT_FILE):
+                # 数字 & 无缓存 --> 返回异常结果
+                replyMsg = reply.TextMsg(from_user, to_user, get_session(COMMON_ERR_MSG))
+                return replyMsg.send()
 
         except Exception as Argument:
             logger.error(Argument)

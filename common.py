@@ -761,24 +761,6 @@ def _prepare_http_data(content, name=None) -> Tuple[str, str, str, str, str, str
     return error_msg, birthday, dist, is_dst, toffset, f'{province}{city}{area}'
 
 
-def _dump_or_load_http_result(filename, soup_obj=None, is_load_mode=True):
-    def _load_http_result(sub_file) -> BeautifulSoup:
-        with open(sub_file, 'rb') as file:
-            deserialized_soup = pickle.load(file)
-
-            return deserialized_soup
-
-    def _dump_http_result(sub_file: str, sub_soup_obj: BeautifulSoup):
-        # 将 soup 对象序列化到文件
-        with open(sub_file, 'wb') as file:
-            pickle.dump(sub_soup_obj, file)
-
-    if is_load_mode:
-        return _load_http_result(filename)
-    else:
-        _dump_http_result(filename, soup_obj)
-
-
 def _fetch_ixingpan_soup(name, female=1, dist='1550', birthday_time='1962-08-08 20:00', dst='0'):
     # dst: Daylight Saving Time
     birthday = birthday_time.split(' ')[0]
@@ -1245,11 +1227,23 @@ def build_result(domain=DomainAsc):
     return ret
 
 
-index_dict = {'1': DomainAsc, '2': DomainLove, '3': DomainMarriage, '4': DomainStudy,
-              '5': DomainWork, '6': DomainHealth, '8':DomainMoney}
+index_dict = {'❶': DomainAsc, '❷': DomainLove, '❸': DomainMarriage, '❹': DomainStudy,
+              '❺': DomainWork, '❻': DomainHealth, '❼': DomainMoney}
+
+'''
+❶ YouTube/Netflix双语翻译（支持DeepL）
+❷ 智能分句，多视图查看字幕内容
+❸ 沉浸式网页翻译
+❹ 智能语法与单词分析
+❺ 将视频转换为练习材料，同时练习听力、口语、拼写等
+❻ 自动高亮任何已经学习过的单词
+❼ 在学习中心统一管理学过的视频、单词与例句
+❽ 与智能语音助手对话学习外语
+❾ 支持iPad，iPhone，Android等PWA程序
+'''
 
 def get_more_result():
-    msg = '更多解析请回复：\n'
+    msg = '\n\n\n\n更多解析请回复：\n'
     index_str = '\n'.join([f"{key}: {value}" for key, value in index_dict.items()])
     return ''.join([msg, index_str])
 
@@ -1355,6 +1349,7 @@ def init_user_attri():
     content = get_session(CONTENT)
     if content in NUM_WHITELIST:
         set_session(IS_INPUT_NUM, True)
+        set_session(TargetDomain, content)
     else:
         set_session(IS_INPUT_NUM, False)
         err, birthday, dist, is_dst, toffset, location = _prepare_http_data(content=get_session(CONTENT), name=get_session(FROMUSER))
