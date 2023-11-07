@@ -1335,11 +1335,11 @@ def init_trace():
     study_trace_dict: Dict[str, List[str]] = {}
 
     all_trace_dict['灾星系统'] = disaster_trace_dict
-    all_trace_dict['恋爱'] = love_trace_dict
-    all_trace_dict['婚姻'] = marriage_trace_dict
-    all_trace_dict['事业'] = work_trace_dict
+    all_trace_dict[DomainLove] = love_trace_dict
+    all_trace_dict[DomainMarriage] = marriage_trace_dict
+    all_trace_dict[DomainWork] = work_trace_dict
     all_trace_dict[DomainAsc] = asc_trace_dict
-    all_trace_dict['学业'] = study_trace_dict
+    all_trace_dict[DomainStudy] = study_trace_dict
 
     # web.ctx.env['trace_info'] = all_trace_dict
     set_session(SESSION_KEY_TRACE, all_trace_dict)
@@ -1380,9 +1380,9 @@ def init_check_cache():
     set_session(FOLDERPATH, folder_path)
 
     filename_req = f'{folder_path}/request.log'
-    filename_report = f'{folder_path}/report_{from_user}_{BIRTHDAY_KEY2}_{DIST_KEY}.pkl'
-    filename_soup1 = f'{folder_path}/soup_{from_user}_{BIRTHDAY_KEY2}_{DIST_KEY}_almuten.pickle'
-    filename_soup2 = f'{folder_path}/soup_{from_user}_{BIRTHDAY_KEY2}_{DIST_KEY}_ixingpan.pickle'
+    filename_report = f'{folder_path}/report_{from_user}_{get_session(BIRTHDAY_KEY2)}_{get_session(DIST_KEY)}.pkl'
+    filename_soup1 = f'{folder_path}/soup_{from_user}_{get_session(BIRTHDAY_KEY2)}_{get_session(DIST_KEY)}_almuten.pickle'
+    filename_soup2 = f'{folder_path}/soup_{from_user}_{get_session(BIRTHDAY_KEY2)}_{get_session(DIST_KEY)}_ixingpan.pickle'
 
     set_session(FILENAME_REQ, filename_req)
     set_session(FILENAME_REPORT, filename_report)
