@@ -119,8 +119,8 @@ def basic_analyse():
         logger.error(f'basic_analyse._get_basic_soup_from_http 执行失败，err={error_msg}')
         return
 
-    dump_obj(soup_ixingpan, FILENAME_SOUP1)
-    dump_obj(soup_almuten, FILENAME_SOUP2)
+    dump_obj(soup_ixingpan, get_session(FILENAME_SOUP1))
+    dump_obj(soup_almuten, get_session(FILENAME_SOUP2))
 
     # 解析宫神星网结果
     _parse_almuten_star(soup_almuten)
@@ -139,7 +139,7 @@ def basic_analyse():
     parse_work()
     parse_study()
 
-    dump_obj(get_session(SESSION_KEY_TRACE), FILENAME_REPORT)
+    dump_obj(get_session(SESSION_KEY_TRACE), get_session(FILENAME_REPORT))
     # return error_msg, soup_ixingpan, soup_almuten
     # get_house_energy()
 
@@ -228,7 +228,7 @@ def parse_asc_star():
 
     reason_debug = f'【{key}】' if is_debug else ''
 
-    set_trace_info('上升点', '重点概括', [f'{reason_debug}{desc}'])
+    set_trace_info(DomainAsc, '重点概括', [f'{reason_debug}{desc}'])
 
 
 def parse_work():
@@ -1338,7 +1338,7 @@ def init_trace():
     all_trace_dict['恋爱'] = love_trace_dict
     all_trace_dict['婚姻'] = marriage_trace_dict
     all_trace_dict['事业'] = work_trace_dict
-    all_trace_dict['上升点'] = asc_trace_dict
+    all_trace_dict[DomainAsc] = asc_trace_dict
     all_trace_dict['学业'] = study_trace_dict
 
     # web.ctx.env['trace_info'] = all_trace_dict
@@ -1356,6 +1356,7 @@ def init_user_attri():
     if content in NUM_WHITELIST:
         set_session(IS_INPUT_NUM, True)
     else:
+        set_session(IS_INPUT_NUM, False)
         err, birthday, dist, is_dst, toffset, location = _prepare_http_data(content=get_session(CONTENT), name=get_session(FROMUSER))
         if err != '':
             set_session(ERROR, '【排盘失败】\n, 请重新输入...')
