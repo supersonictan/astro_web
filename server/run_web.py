@@ -7,10 +7,12 @@ from typing import Dict, List
 import os
 import pickle
 
+
 sys.path.append('/root/code/astro_web')
 
 import common
 from common import build_result
+from common import basic_analyse
 from common import get_session, set_session
 from common import init_session
 from common import Const
@@ -52,7 +54,16 @@ class Handle():
             if get_session(Const.HAS_REPORT_FILE) and not get_session(Const.IS_INPUT_NUM):
                 reply_str = build_result()
                 replyMsg = reply.TextMsg(from_user, to_user, reply_str)
+                return replyMsg.send()
+            elif not get_session(Const.IS_INPUT_NUM) and not get_session(Const.HAS_REPORT_FILE):
+                # 非数字 & 无缓存 --> http咯
+                basic_analyse()
+                if get_session(Const.ERROR) != '':
+                    reply_str = get_session(Const.ERROR)
+                else:
+                    reply_str = build_result()
 
+                replyMsg = reply.TextMsg(from_user, to_user, reply_str)
                 return replyMsg.send()
 
         except Exception as Argument:

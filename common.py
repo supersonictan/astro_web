@@ -140,13 +140,20 @@ class House:
         return f'{self.house_num}宫主{self.ruler} 落{self.ruler_loc}宫, {self.house_num}宫宫内落星:{self.loc_star}, 宫头星座:{self.constellation}'
 
 
-def basic_analyse(customer_name, content) -> Tuple[str, BeautifulSoup, BeautifulSoup]:
+def basic_analyse():
     logger.debug('-------------- invoke basic_analyse --------------------')
+    customer_name = get_session(Const.FROMUSER)
+    content = get_session(Const.CONTENT)
+
     soup_ixingpan, soup_almuten = None, None
     error_msg, soup_ixingpan, soup_almuten = _get_basic_soup_from_http(customer_name=customer_name, content=content)
-
     if error_msg != '':
-        return error_msg, soup_ixingpan, soup_almuten
+        set_session(Const.ERROR, Const.COMMON_ERR_MSG)
+        logger.error(f'basic_analyse._get_basic_soup_from_http 执行失败，err={error_msg}')
+        return
+
+    dump_obj(soup_ixingpan, Const.FILENAME_SOUP1)
+    dump_obj(soup_almuten, Const.FILENAME_SOUP2)
 
     # 解析宫神星网结果
     _parse_almuten_star(soup_almuten)
@@ -165,7 +172,8 @@ def basic_analyse(customer_name, content) -> Tuple[str, BeautifulSoup, Beautiful
     parse_work()
     parse_study()
 
-    return error_msg, soup_ixingpan, soup_almuten
+    dump_obj(get_session(Const.SESSION_KEY_TRACE), Const.FILENAME_REPORT)
+    # return error_msg, soup_ixingpan, soup_almuten
     # get_house_energy()
 
 
@@ -1230,7 +1238,15 @@ def get_square():
 
     web.ctx.env['trace_info']['灾星系统']['盘主灾星信息'] = trace_square_vec
 
+# ------------------------ Dump 数据 ---------------------
+def dump_obj(obj, filepath):
+    with open(filepath, 'wb') as file:
+        pickle.dump(obj, file)
 
+    logger.debug(f'成功Dump文件, {filepath}')
+
+
+# ------------------------- 生成返回结果 ---------------------
 def build_result(domain=Const.DomainAsc):
     trace_dict = get_session(Const.SESSION_KEY_TRACE)
     if domain not in trace_dict:
@@ -1265,11 +1281,10 @@ def build_result(domain=Const.DomainAsc):
 index_dict = {'1': Const.DomainAsc, '2': Const.DomainLove, '3': Const.DomainMarriage, '4': Const.DomainStudy,
               '5': Const.DomainWork, '6': Const.DomainHealth, '8':Const.DomainMoney}
 
-
 def get_more_result():
-    msg = '更多解析请回复：'
+    msg = '更多解析请回复：\n'
     index_str = '\n'.join([f"{key}: {value}" for key, value in index_dict.items()])
-    return index_str
+    return ''.join(msg, index_str)
 
 
 # --------------------------- get set session 变量-----------------
