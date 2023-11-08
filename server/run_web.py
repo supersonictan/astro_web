@@ -51,11 +51,13 @@ class Handle():
 
             # 非数字 & 有缓存 --> 返回缓存结果
             if get_session(HAS_REPORT_FILE) and not get_session(IS_INPUT_NUM):
+                logger.debug('非数字 & 有缓存 --> 返回缓存结果...')
                 reply_str = build_result()
                 replyMsg = reply.TextMsg(from_user, to_user, reply_str)
                 return replyMsg.send()
             elif not get_session(IS_INPUT_NUM) and not get_session(HAS_REPORT_FILE):
                 # 非数字 & 无缓存 --> http咯
+                logger.debug('非数字 & 无缓存 --> http咯...')
                 basic_analyse()
                 if get_session(ERROR) != '':
                     reply_str = get_session(ERROR)
@@ -66,17 +68,19 @@ class Handle():
                 return replyMsg.send()
             elif get_session(IS_INPUT_NUM) and get_session(HAS_REPORT_FILE):
                 # 数字 & 有缓存 --> 返回缓存结果
+                logger.debug('数字 & 有缓存 --> 返回缓存结果...')
                 reply_str = build_result(get_session(TargetDomain))
                 replyMsg = reply.TextMsg(from_user, to_user, reply_str)
                 return replyMsg.send()
             elif get_session(IS_INPUT_NUM) and not get_session(HAS_REPORT_FILE):
+                logger.debug('数字 & 无缓存 --> 返回异常结果...')
                 # 数字 & 无缓存 --> 返回异常结果
                 replyMsg = reply.TextMsg(from_user, to_user, get_session(COMMON_ERR_MSG))
                 return replyMsg.send()
 
-        except Exception as Argument:
-            logger.error(Argument)
-            return Argument
+        except Exception as e:
+            logger.error(e.with_traceback())
+            return e
 
 
 
@@ -99,7 +103,7 @@ def parse_request_data(webData):
     set_session(FROMUSER, fromUser)
     set_session(CONTENT, content)
 
-    logger.debug(f'----------> FromUser:{get_session(FROMUSER)} ToUser:{get_session(TOUSER)} Content:{get_session(CONTENT)}')
+    # logger.debug(f'----------> FromUser:{get_session(FROMUSER)} ToUser:{get_session(TOUSER)} Content:{get_session(CONTENT)}')
 
     return recMsg, fromUser, toUser, content
 

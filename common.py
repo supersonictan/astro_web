@@ -16,7 +16,7 @@ from Const import *
 
 
 # 创建日志记录器
-logger = logging.getLogger('commonLogger')
+logger = logging.getLogger('common.py')
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(formatter)
@@ -130,6 +130,16 @@ def basic_analyse():
     _parse_ixingpan_house(soup_ixingpan)
     _parse_ixingpan_aspect(soup_ixingpan)
 
+    if False:
+        house_dict_tmp = get_session(SESS_KEY_HOUSE)
+        for id, house_obj in house_dict_tmp.items():
+            logger.debug(f'{id}宫，宫内星: {house_obj.loc_star}')
+
+        logger.debug('-----------------------------')
+        star_dict_tmp = get_session(SESS_KEY_STAR)
+        for name, star_obj in star_dict_tmp.items():
+            logger.debug(f'{name}, {star_obj.house}宫')
+
     get_square()
 
     parse_asc_star()
@@ -222,7 +232,7 @@ def parse_asc_star():
     asc_house = star_dict[asc_star].house
 
     key = f'命主星{asc_house}宫'
-    logger.debug(key)
+    # logger.debug(key)
     desc = knowledge_dict['命主星落宫'][key]
     logger.debug('3333333333333333333333333')
 
@@ -565,7 +575,7 @@ def parse_love():
         tmp_reason = '【1飞5,且1r 分数<0】' if is_debug else ''
         tmp_vec.append(f'{tmp_reason}有可能是恋爱脑的配置.')
 
-    logger.debug('!4.2 4.2 4.2 4.2 4.2')
+    # logger.debug('!4.2 4.2 4.2 4.2 4.2')
     tmp_key = f'5飞{star_5_loc}'
     if tmp_key in ruler5_fly_dict:
         tmp_reason = f'【{tmp_key}】' if is_debug else ''
@@ -615,7 +625,7 @@ def parse_marrage_2():
 
     knowledge_dict = web.ctx.env['knowledge_dict']
     desc = knowledge_dict['婚神星落宫'][key]
-    logger.debug(desc)
+    # logger.debug(desc)
 
     reason = f'【{key}】' if is_debug else ''
     set_trace_info('婚姻', '整体', [f'{reason}{desc}'])
@@ -755,10 +765,17 @@ def _prepare_http_data(content, name=None) -> Tuple[str, str, str, str, str, str
     error_msg, dist = _get_dist_by_location(target_province=province, target_city=city, target_district=area)
 
     # TODO: dynamic
-    is_dst = '0'
+    is_dst = 0
     toffset = 'GMT_ADD_8'
 
     return error_msg, birthday, dist, is_dst, toffset, f'{province}{city}{area}'
+
+
+def generate_random_string():
+    import random, string
+    length = random.randint(3, 9)  # 随机生成长度在4到8之间的整数
+    characters = string.ascii_lowercase + string.digits  # 包含小写字母和数字的字符集
+    return ''.join(random.choice(characters) for _ in range(length))
 
 
 def _fetch_ixingpan_soup(name, female=1, dist='1550', birthday_time='1962-08-08 20:00', dst='0'):
@@ -766,8 +783,9 @@ def _fetch_ixingpan_soup(name, female=1, dist='1550', birthday_time='1962-08-08 
     birthday = birthday_time.split(' ')[0]
     birth_time = birthday_time.split(' ')[1]
 
-    url = f"https://xp.ixingpan.com/xp.php?type=natal&name={name}&sex={female}&dist={dist}&date={birthday}&time={birth_time}&dst={dst}&hsys=P"
-    logger.info(f'爱星盘请求串 {url}')
+    new_name = generate_random_string()
+    url = f"https://xp.ixingpan.com/xp.php?type=natal&name={new_name}&sex={female}&dist={dist}&date={birthday}&time={birth_time}&dst={dst}&hsys=P"
+    logger.debug(f'爱星盘请求串 {url}')
 
     # 发送GET请求
     response = requests.get(url, cookies={'xp_planets_natal': '0,1,2,3,4,5,6,7,8,9,25,26,27,28,15,19,10,29'})
@@ -830,7 +848,8 @@ def _parse_glon_glat(soup) -> Tuple[str, str, str]:
 
 def _build_almuten_http_data(name, birthinfo, loc, glon_deg, glat_deg, toffset, is_dst):
     data = {}
-    data['name'] = name
+    new_name = generate_random_string()
+    data['name'] = new_name
 
     birthday = birthinfo.split(' ')[0]
 
@@ -842,6 +861,7 @@ def _build_almuten_http_data(name, birthinfo, loc, glon_deg, glat_deg, toffset, 
     data['hour'] = str(int(brith_time.split(':')[0]))
 
     if is_dst:
+        logger.debug('@@@@@@@@@@@@@@@@@@@@@@@')
         data['hour'] = str(int(data['hour']) - 1)
 
     data['min'] = brith_time.split(':')[1]
@@ -947,6 +967,8 @@ def _parse_almuten_star(soup):
         score = tds[17].text.strip()
         score = 0 if score == '0 P' else score
 
+        logger.debug(f'+++++++++++{star}\t{house}')
+
         star_obj = Star(star=star, house=house, score=score, lord_house_vec=lord_house_vec)
 
         if star in ['上升', '中天']:
@@ -1026,6 +1048,8 @@ def _parse_ixingpan_star(soup):
         star = tds[0].text.strip()
         constellation = tds[1].text.strip()
         house = tds[2].text.strip()
+
+        logger.debug(f'--------->{star}\t{house}')
 
         constellation = pattern_constellation.sub('', constellation).strip()
 
@@ -1230,6 +1254,10 @@ def build_result(domain=DomainAsc):
 index_dict = {'❶': DomainAsc, '❷': DomainLove, '❸': DomainMarriage, '❹': DomainStudy,
               '❺': DomainWork, '❻': DomainHealth, '❼': DomainMoney}
 
+index_dict_inner = {'1': DomainAsc, '2': DomainLove, '3': DomainMarriage, '4': DomainStudy,
+              '5': DomainWork, '6': DomainHealth, '7': DomainMoney}
+
+
 '''
 ❶ YouTube/Netflix双语翻译（支持DeepL）
 ❷ 智能分句，多视图查看字幕内容
@@ -1243,8 +1271,8 @@ index_dict = {'❶': DomainAsc, '❷': DomainLove, '❸': DomainMarriage, '❹':
 '''
 
 def get_more_result():
-    msg = '\n\n\n\n更多解析请回复：\n'
-    index_str = '\n'.join([f"{key}: {value}" for key, value in index_dict.items()])
+    msg = '\n\n更多解析请回复：\n'
+    index_str = '\n'.join([f" {key}  {value}" for key, value in index_dict.items()])
     return ''.join([msg, index_str])
 
 
@@ -1349,7 +1377,25 @@ def init_user_attri():
     content = get_session(CONTENT)
     if content in NUM_WHITELIST:
         set_session(IS_INPUT_NUM, True)
-        set_session(TargetDomain, content)
+
+        trans_content = index_dict_inner[content]
+        set_session(TargetDomain, trans_content)
+
+        # 设置 BIRTHDAY_KEY2, DIST_KEY
+        filename = f'./cache/basic/{get_session(FROMUSER)}/request.log'
+        last_line = None
+        if os.path.exists(filename):
+            with open(filename, 'r') as file:
+                for line in file:
+                    last_line = line
+
+            vec = last_line.split('\t')
+            birth = vec[0]
+            dist = vec[1]
+
+            set_session(BIRTHDAY_KEY2, birth)
+            set_session(DIST_KEY, dist)
+
     else:
         set_session(IS_INPUT_NUM, False)
         err, birthday, dist, is_dst, toffset, location = _prepare_http_data(content=get_session(CONTENT), name=get_session(FROMUSER))
@@ -1373,6 +1419,7 @@ def init_check_cache():
 
     folder_path = f'./cache/basic/{from_user}'
     set_session(FOLDERPATH, folder_path)
+    os.makedirs(get_session(FOLDERPATH), exist_ok=True)
 
     filename_req = f'{folder_path}/request.log'
     filename_report = f'{folder_path}/report_{from_user}_{get_session(BIRTHDAY_KEY2)}_{get_session(DIST_KEY)}.pkl'
@@ -1397,4 +1444,11 @@ def init_check_cache():
 
             set_session(SESSION_KEY_TRACE, all_trace_dict)
             logger.debug(f'成功从[{get_session(FILENAME_REPORT)}] 加载 all_trace_dict')
+
+
+    # Append birthday_key2, dist to request.log
+    with open(filename_req, "w") as file:
+        file.write(f"{get_session(BIRTHDAY_KEY2)}\t{get_session(DIST_KEY)}")
+    logger.debug(f'成功写文件, [{filename_req}]...')
+
 
