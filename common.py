@@ -766,6 +766,8 @@ def _prepare_http_data(content, name=None) -> Tuple[str, str, str, str, str, str
 
     # TODO: dynamic
     is_dst = 0
+    if is_daylight_saving_time(city, birthday):
+        is_dst = 1
     toffset = 'GMT_ADD_8'
 
     return error_msg, birthday, dist, is_dst, toffset, f'{province}{city}{area}'
@@ -1211,6 +1213,28 @@ def get_square():
 
     web.ctx.env['trace_info']['灾星系统']['盘主灾星信息'] = trace_square_vec
 
+# ----------------------- 夏令时 -------------------------
+def is_daylight_saving_time(loc, time):
+    import pytz
+    from datetime import datetime
+
+    # 重庆（Chongqing）：Asia / Chongqing
+    # 天津（Tianjin）：Asia / Shanghai
+    # 香港（Hong
+    # Kong）：Asia / Hong_Kong
+    # 澳门（Macau）：Asia / Macau
+    # 台北（Taipei）：Asia / Taipei
+    # 乌鲁木齐（Urumqi）：Asia / Urumqi
+    # 哈尔滨（Harbin）：Asia / Harbin
+
+    location = 'Asia/Shanghai'
+    tz = pytz.timezone(location)  # 根据给定的位置获取时区信息
+    dt = datetime.strptime(time, "%Y-%m-%d %H:%M:%S")  # 将给定的时间字符串转换为datetime对象
+    localized_dt = tz.localize(dt)  # 将datetime对象转换为指定时区的本地时间
+
+    return localized_dt.dst() != tz.utcoffset(localized_dt)
+
+
 # ------------------------ Dump 数据 ---------------------
 def dump_obj(obj, filepath):
     with open(filepath, 'wb') as file:
@@ -1251,14 +1275,25 @@ def build_result(domain=DomainAsc):
     return ret
 
 
-index_dict = {'❶': DomainAsc, '❷': DomainLove, '❸': DomainMarriage, '❹': DomainStudy,
-              '❺': DomainWork, '❻': DomainHealth, '❼': DomainMoney}
+index_dict = {'1⃣️': DomainAsc, '2⃣️': DomainLove, '3⃣️': DomainMarriage, '4⃣️': DomainStudy,
+              '5⃣️': DomainWork, '6⃣️': DomainHealth, '7⃣️': DomainMoney}
 
 index_dict_inner = {'1': DomainAsc, '2': DomainLove, '3': DomainMarriage, '4': DomainStudy,
               '5': DomainWork, '6': DomainHealth, '7': DomainMoney}
 
 
 '''
+1⃣️太阳：脑部，心脏部位，命主生命力，脊椎，活力。
+2⃣️月亮：女性生理问题，卵巢乳房，怀孕情况，心理素质，体液，饮食，消化系统，记忆力，视力
+3⃣️水星：神经系统，精神情况，眼睛部位，呼吸系统，肺部，手臂，舌头
+4⃣️金星：喉咙，肾脏，排泄系统，内平衡，性问题
+5⃣️火星：肌肉，血液，发炎发热，开刀出血，生殖器官，左耳
+6⃣️木星：肝脏，大腿，臀部，动脉，肥胖，增生
+7⃣️土星：脾，牙齿，骨骼，关节，皮肤，右耳听力，慢性疾病，肌肉僵硬
+8⃣️天王星：循环系统，神经系统，意外，抽筋，动手术
+9⃣️海王星：淋巴系统，身体机能弱化，感染，过敏
+🔟冥王星：再生系统，内分泌，心理情况
+📖宫位健康范围
 ❶ YouTube/Netflix双语翻译（支持DeepL）
 ❷ 智能分句，多视图查看字幕内容
 ❸ 沉浸式网页翻译
