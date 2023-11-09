@@ -2,7 +2,7 @@
 from typing import Dict, List, Tuple
 import web
 import json
-import datetime
+# import datetime
 import os
 import requests
 import re
@@ -651,8 +651,12 @@ def _get_basic_soup_from_http(customer_name, content) -> Tuple[str, BeautifulSou
     if error_msg != '':
         return error_msg, None, None
 
+    import time
+    time1 = time.time()
     soup_ixingpan = _fetch_ixingpan_soup(name=customer_name, dist=dist, birthday_time=birthday, dst=is_dst, female=1)
-    logger.debug('成功通过HTTP获取「爱星盘」排盘信息...')
+    time1_2 = time.time()
+    time_diff = int((time1_2 - time1) * 1000)
+    logger.debug(f'成功通过HTTP获取「爱星盘」排盘信息, Latency={time_diff}...')
 
     # Update 宫神星要用到的:glon_deg, glat_deg. 取自ixingpan结果中的
     err_no, glon_deg, glat_deg = _parse_glon_glat(soup=soup_ixingpan)
@@ -660,9 +664,12 @@ def _get_basic_soup_from_http(customer_name, content) -> Tuple[str, BeautifulSou
         return err_no, None, None
 
     """ almuten Http Result. """
+    time2 = time.time()
     post_data = _build_almuten_http_data(name=customer_name, birthinfo=birthday, loc=location, glon_deg=glon_deg, glat_deg=glat_deg, toffset=toffset, is_dst=is_dst)
     soup_almuten = _fetch_almuten_soup(post_data)
-    logger.debug(f'成功通过HTTP获取「宫神星」排盘信息')
+    time2_2 = time.time()
+    time_diff2 = int((time2_2 - time2) * 1000)
+    logger.debug(f'成功通过HTTP获取「宫神星」排盘信息, Latency={time_diff2}...')
 
     return error_msg, soup_ixingpan, soup_almuten
 
@@ -709,7 +716,8 @@ def _prepare_http_data(content, name=None) -> Tuple[str, str, str, str, str, str
             hour += 12
 
         # 返回解析结果
-        dt = datetime.datetime(year, month, day, hour, minute)
+        from datetime import datetime
+        dt = datetime(year, month, day, hour, minute)
 
         return dt.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -766,7 +774,7 @@ def _prepare_http_data(content, name=None) -> Tuple[str, str, str, str, str, str
 
     # TODO: dynamic
     is_dst = 0
-    if is_daylight_saving_time(city, birthday):
+    if get_is_dst(city, birthday):
         is_dst = 1
     toffset = 'GMT_ADD_8'
 
@@ -1213,11 +1221,10 @@ def get_square():
 
     web.ctx.env['trace_info']['灾星系统']['盘主灾星信息'] = trace_square_vec
 
-# ----------------------- 夏令时 -------------------------
-def is_daylight_saving_time(loc, time):
-    import pytz
-    from datetime import datetime
 
+# ----------------------- 夏令时 -------------------------
+def get_is_dst(loc, time_str):
+    logger.debug('开始执行夏令时检查...')
     # 重庆（Chongqing）：Asia / Chongqing
     # 天津（Tianjin）：Asia / Shanghai
     # 香港（Hong
@@ -1227,12 +1234,18 @@ def is_daylight_saving_time(loc, time):
     # 乌鲁木齐（Urumqi）：Asia / Urumqi
     # 哈尔滨（Harbin）：Asia / Harbin
 
-    location = 'Asia/Shanghai'
-    tz = pytz.timezone(location)  # 根据给定的位置获取时区信息
-    dt = datetime.strptime(time, "%Y-%m-%d %H:%M:%S")  # 将给定的时间字符串转换为datetime对象
-    localized_dt = tz.localize(dt)  # 将datetime对象转换为指定时区的本地时间
+    from datetime import datetime
+    import pytz
 
-    return localized_dt.dst() != tz.utcoffset(localized_dt)
+    logger.debug(f'inp time:{time_str}')
+
+    dt = datetime.strptime(time_str, "%Y-%m-%d %H:%M:%S")
+    localized_dt = pytz.timezone('Asia/Shanghai').localize(dt)
+    is_dst = localized_dt.dst().total_seconds() != 0
+
+    logger.debug(f'夏令时检查结果, 是夏令时={is_dst}')
+
+    return is_dst
 
 
 # ------------------------ Dump 数据 ---------------------
