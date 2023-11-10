@@ -78,6 +78,16 @@ class Star:
 
         self.constellation: str = ''
 
+        self.degree: int  # 度数
+        self.is_term_ruler = 0  # 界
+        self.is_domicile = 0  # 入庙
+        self.is_exaltation = 0  # 耀升
+        self.is_triplicity = 0  # 三份
+        self.is_face = 0  # 十度
+        self.is_fall = 0  # 弱
+        self.is_detriment = 0  # 陷
+
+
     def __str__(self):
         # msg_recepted = [msg.get_debug_info() for msg in self.recepted_vec_old]
         msg_recepted = [msg.get_debug_info() for key, msg in self.recepted_dict.items()]
@@ -1069,10 +1079,9 @@ def _parse_ixingpan_star(soup):
         constellation_ori = tds[1].text.strip()
         house = tds[2].text.strip()
 
-        constellation, degree, rulership = extract_constellation(constellation_ori)
-        # constellation = pattern_constellation.sub('', constellation_ori).strip()
+        constellation, degree, status = extract_constellation(constellation_ori)
 
-        logger.debug(f'--------->星体:{star}  星座:{constellation}  度数:{degree}  苗旺:{rulership}\t宫位:{house}')
+        # constellation = pattern_constellation.sub('', constellation_ori).strip()
 
         match = pattern_house.search(house)
 
@@ -1092,6 +1101,37 @@ def _parse_ixingpan_star(soup):
             r = Star(star=star, house=house)
             r.constellation = constellation
             web.ctx.env['star_dict'][star] = r
+
+        # self.degree: int  # 度数
+        # self.is_triplicity = 0  # 三份
+        # self.is_term_ruler = 0  # 界
+        # self.is_face = 0  # 十度
+
+        # self.is_domicile = 0  # 入庙
+        # self.is_exaltation = 0  # 耀升
+        # self.is_fall = 0  # 弱
+        # self.is_detriment = 0  # 陷
+
+        is_domicile = 1 if status == '庙' else 0
+        is_exaltation = 1 if status == '旺' else 0
+        is_fall = 1 if status == '弱' else 0
+        is_detriment = 1 if status == '陷' else 0
+        is_triplicity = 1 if is_triplicity_ruler(star, constellation) else 0
+        is_face = 1 if is_face_ruler(star, constellation) else 0
+        is_term = 1 if is_term_ruler(star, constellation) else 0
+
+        web.ctx.env[SESS_KEY_STAR][star].is_domicile = is_domicile
+        web.ctx.env[SESS_KEY_STAR][star].is_exaltation = is_exaltation
+        web.ctx.env[SESS_KEY_STAR][star].is_fall = is_fall
+        web.ctx.env[SESS_KEY_STAR][star].is_detriment = is_detriment
+
+        web.ctx.env[SESS_KEY_STAR][star].is_triplicity = is_triplicity
+        web.ctx.env[SESS_KEY_STAR][star].is_face = is_face
+        web.ctx.env[SESS_KEY_STAR][star].is_term_ruler = is_term
+
+        score = 5 * is_domicile + 4 * is_exaltation + 3 * is_triplicity + 2 * is_term + is_face - 5*is_detriment - 4*is_fall
+
+        logger.debug(f'--------->星体:{star}  星座:{constellation}  度数:{degree}  得分:{score}\t宫位:{house}')
 
 
 def _parse_ixingpan_house(soup):
@@ -1268,16 +1308,37 @@ def is_triplicity_ruler(star_name: str, target_constellation: str, ):
 
 
 # 界主
-def is_term_ruler():
-    pass
+def is_term_ruler(star: str, target_const: str):
+    boundry_dict = get_session(TermKey)
+    star_degree = get_session(SESS_KEY_STAR)[star].degree
+
+    if target_const not in boundry_dict:
+        logger.warning(f'星座{target_const} 不在boundry_dict中...')
+        return False
+
+    if star not in boundry_dict[target_const]:
+        return False
+
+    if boundry_dict[target_const][star][0] < star_degree and star_degree <= boundry_dict[target_const][star][1]:
+        return True
+
+    return False
 
 
 # 十度
-def is_face(target_const: str, star: str):
+def is_face_ruler(star: str, target_const: str):
     # 白羊 = 火星 太阳 金星
     knowledge_dict = get_session(key=SESS_KEY_KNOWLEDGE)
     face_dict = knowledge_dict['十度']
 
+    if target_const not in face_dict:
+        logger.warning(f'星座：{target_const} 不在knowledge_dict 字典中...')
+        return False
+
+    if star in face_dict[target_const]:
+        return True
+
+    return False
 
 
 
@@ -1443,6 +1504,47 @@ def init_knowledge_dict():
 
     _load_knowledge_file()
     set_session(SESS_KEY_KNOWLEDGE, knowledge_dict)
+
+    init_star_boundry_dict()
+
+
+def init_star_boundry_dict():
+    '''
+    白羊 = 木星:6 金星:14 水星:21 火星:26 土星:30
+    金牛 = 金星:8 水星:15 木星:22 土星:26 火星:30
+    双子 = 水星:7 木星:14 金星:21 土星:25 火星:30
+    巨蟹 = 火星:6 木星:13 水星:20 金星:27 土星:30
+    狮子 = 土星:6 水星:13 金星:19 木星:25 火星:30
+    处女 = 水星:7 金星:13 木星:18 土星:24 火星:30
+    天秤 = 土星:6 金星:11 木星:19 水星:24 火星:30
+    天蝎 = 火星:6 木星:14 金星:21 水星:27 土星:30
+    射手 = 木星:8 金星:14 水星:19 土星:25 火星:30
+    摩羯 = 金星:6 水星:12 木星:19 火星:25 土星:30
+    水瓶 = 土星:6 水星:12 金星:20 木星:25 火星:30
+    双鱼 = 金星:8 木星:14 水星:20 火星:26 土星:30
+    '''
+    boundry_orgin_dict = get_session(SESS_KEY_KNOWLEDGE)['界']
+    boundry_dict: Dict[str, Dict[str, List[int]]] = dict()  # {白羊: {木星: [0, 6]}}
+
+    for const, star_str in boundry_orgin_dict.items():
+        star_degree_vec = star_str.split()
+
+        degree_before = 0
+        for star_degree in star_degree_vec:
+            star = star_degree.split(':')[0]
+            degree = int(star_degree.split(':')[1])
+
+            if const not in boundry_dict:
+                boundry_dict[const] = {star: [degree_before, degree]}
+                continue
+
+            boundry_dict[const].update({star: [degree_before, degree]})
+
+            degree_before = degree
+
+    logger.debug(boundry_dict)
+
+    set_session(TermKey, boundry_dict)
 
 
 def init_trace():

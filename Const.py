@@ -34,3 +34,5 @@ DomainWork = '事业'
 DomainHealth = '健康'
 DomainMoney = '财富'
 TargetDomain = 'target_domain'
+
+TermKey = 'term_key'
