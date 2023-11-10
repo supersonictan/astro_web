@@ -1037,7 +1037,17 @@ def _parse_almuten_star(soup):
         web.ctx.env['house_dict'][house].loc_star.append(star_name)
 
 
-pattern_constellation = re.compile(r'\([^)]*\)')
+def extract_constellation(input_str):
+    pattern = r'(.+?)\s*\((\d+).*?\)(?:\s*\((.*?)\))?$'
+    match = re.search(pattern, input_str)
+    if match:
+        name, degree, extra = match.groups()
+        return name, degree, extra
+    else:
+        return None, None, None
+
+
+pattern_constellation = re.compile(r'\([^)]*\)'r'(.+?)\s*\((\d+).*?\)(?:\s*\((.*?)\))?$')
 pattern_house = re.compile(r'\d+')
 def _parse_ixingpan_star(soup):
     '''
@@ -1056,11 +1066,13 @@ def _parse_ixingpan_star(soup):
     for tr in trs:
         tds = tr.find_all('td')
         star = tds[0].text.strip()
-        constellation = tds[1].text.strip()
+        constellation_ori = tds[1].text.strip()
         house = tds[2].text.strip()
-        constellation = pattern_constellation.sub('', constellation).strip()
 
-        logger.debug(f'--------->{star}\t{constellation}\t{house}')
+        constellation, degree, rulership = extract_constellation(constellation_ori)
+        # constellation = pattern_constellation.sub('', constellation_ori).strip()
+
+        logger.debug(f'--------->星体:{star}  星座:{constellation}  度数:{degree}  苗旺:{rulership}\t宫位:{house}')
 
         match = pattern_house.search(house)
 
