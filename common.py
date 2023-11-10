@@ -1058,10 +1058,9 @@ def _parse_ixingpan_star(soup):
         star = tds[0].text.strip()
         constellation = tds[1].text.strip()
         house = tds[2].text.strip()
-
-        logger.debug(f'--------->{star}\t{house}')
-
         constellation = pattern_constellation.sub('', constellation).strip()
+
+        logger.debug(f'--------->{star}\t{constellation}\t{house}')
 
         match = pattern_house.search(house)
 
@@ -1220,6 +1219,54 @@ def get_square():
         # print(', '.join(msg_vec))
 
     web.ctx.env['trace_info']['灾星系统']['盘主灾星信息'] = trace_square_vec
+
+
+# ----------------------- 计算先天尊贵 --------------------
+# 三分
+def is_triplicity_ruler(star_name: str, target_constellation: str, ):
+    '''
+    [星体-四元素]
+    火象 = 太阳、木星、土星
+    风象 = 土星、水星、木星
+    水象 = 金星、火星、月亮
+    土象 = 金星、月亮、火星
+
+    [星座-四元素]
+    火象 = 射手、狮子、白羊
+    风象 = 双子、天秤、水瓶
+    水象 = 巨蟹、双鱼、天蝎
+    土象 = 摩羯、处女、金牛
+    :param constellation:
+    :param star_name:
+    :return:
+    '''
+    knowledge_dict = get_session(key=SESS_KEY_KNOWLEDGE)
+    star_element_dict = knowledge_dict['星体-四元素']
+    constellation_element_dict = knowledge_dict['星座-四元素']
+
+    for element, star_list_str in star_element_dict.items():
+        if star_name not in star_list_str:
+            continue
+
+        recall_constellation = constellation_element_dict[element]
+        if target_constellation in recall_constellation:
+            return True
+
+    return False
+
+
+# 界主
+def is_term_ruler():
+    pass
+
+
+# 十度
+def is_face(target_const: str, star: str):
+    # 白羊 = 火星 太阳 金星
+    knowledge_dict = get_session(key=SESS_KEY_KNOWLEDGE)
+    face_dict = knowledge_dict['十度']
+
+
 
 
 # ----------------------- 夏令时 -------------------------
