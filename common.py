@@ -78,7 +78,7 @@ class Star:
 
         self.constellation: str = ''
 
-        self.degree: int  # 度数
+        self.degree = 0
         self.is_term_ruler = 0  # 界
         self.is_domicile = 0  # 入庙
         self.is_exaltation = 0  # 耀升
@@ -987,8 +987,6 @@ def _parse_almuten_star(soup):
         score = tds[17].text.strip()
         score = 0 if score == '0 P' else score
 
-        logger.debug(f'+++++++++++{star}\t{house}')
-
         star_obj = Star(star=star, house=house, score=score, lord_house_vec=lord_house_vec)
 
         if star in ['上升', '中天']:
@@ -1102,6 +1100,7 @@ def _parse_ixingpan_star(soup):
             r.constellation = constellation
             web.ctx.env['star_dict'][star] = r
 
+        web.ctx.env['star_dict'][star].degree = int(degree)
         # self.degree: int  # 度数
         # self.is_triplicity = 0  # 三份
         # self.is_term_ruler = 0  # 界
@@ -1109,11 +1108,15 @@ def _parse_ixingpan_star(soup):
 
         # self.is_domicile = 0  # 入庙
         # self.is_exaltation = 0  # 耀升
-        # self.is_fall = 0  # 弱
-        # self.is_detriment = 0  # 陷
+        # self.is_fall = 0  # 弱 -5'
+        # self.is_detriment = 0  # 陷 -4'
 
         is_domicile = 1 if status == '庙' else 0
-        is_exaltation = 1 if status == '旺' else 0
+        is_exaltation = 1 if status == '旺' else 0  # 抓的结果如果是庙,则不会写耀升
+        
+        if is_exaltation == 0:
+            is_exaltation = 1 if is_exaltation_ruler(star, constellation) else 0
+
         is_fall = 1 if status == '弱' else 0
         is_detriment = 1 if status == '陷' else 0
         is_triplicity = 1 if is_triplicity_ruler(star, constellation) else 0
@@ -1129,9 +1132,14 @@ def _parse_ixingpan_star(soup):
         web.ctx.env[SESS_KEY_STAR][star].is_face = is_face
         web.ctx.env[SESS_KEY_STAR][star].is_term_ruler = is_term
 
-        score = 5 * is_domicile + 4 * is_exaltation + 3 * is_triplicity + 2 * is_term + is_face - 5*is_detriment - 4*is_fall
+        score = 5 * is_domicile + 4 * is_exaltation + 3 * is_triplicity + 2 * is_term + 1*is_face - 4*is_detriment - 5*is_fall
+        if star not in {'太阳', '月亮', '水星', '木星', '火星', '土星', '金星'}:
+            score = -1
 
-        logger.debug(f'--------->星体:{star}  星座:{constellation}  度数:{degree}  得分:{score}\t宫位:{house}')
+        web.ctx.env[SESS_KEY_STAR][star].score = score
+
+        logger.debug(f'-->星体:{star} 星座:{constellation} 度数:{degree} 庙:{is_domicile} 旺:{is_exaltation} 三:{is_triplicity} 界:{is_term} 十:{is_face}  得分:{score}\t宫神分:{web.ctx.env["star_dict"][star].score}宫位:{house}')
+
 
 
 def _parse_ixingpan_house(soup):
@@ -1335,10 +1343,36 @@ def is_face_ruler(star: str, target_const: str):
         logger.warning(f'星座：{target_const} 不在knowledge_dict 字典中...')
         return False
 
-    if star in face_dict[target_const]:
+    vec = face_dict[target_const].split()
+    if len(vec) != 3:
+        logger.warning(f'knowledge_dict文件异常, key=十度, line={face_dict[target_const]}')
+        return False
+
+    loc_degree = get_session(SESS_KEY_STAR)[star].degree
+
+    idx = 0
+    if loc_degree > 10 and loc_degree <= 20:
+        idx = 1
+    elif loc_degree > 20 and loc_degree <= 30:
+        idx = 2
+
+    candi_star = vec[idx]
+    if star == candi_star:
         return True
 
     return False
+
+
+# 十度
+def is_exaltation_ruler(star: str, target_const: str):
+    knowledge_dict = get_session(key=SESS_KEY_KNOWLEDGE)
+    a_dict = knowledge_dict['耀升']
+    
+    if target_const in a_dict and a_dict[target_const] == star:
+        return True
+
+    return False
+
 
 
 
@@ -1529,13 +1563,14 @@ def init_star_boundry_dict():
     for const, star_str in boundry_orgin_dict.items():
         star_degree_vec = star_str.split()
 
-        degree_before = 0
+        degree_before = -1
         for star_degree in star_degree_vec:
             star = star_degree.split(':')[0]
             degree = int(star_degree.split(':')[1])
 
             if const not in boundry_dict:
                 boundry_dict[const] = {star: [degree_before, degree]}
+                degree_before = degree
                 continue
 
             boundry_dict[const].update({star: [degree_before, degree]})
