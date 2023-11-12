@@ -140,6 +140,9 @@ def basic_analyse():
     _parse_ixingpan_house(soup_ixingpan)
     _parse_ixingpan_aspect(soup_ixingpan)
 
+    # 互溶接纳
+    is_received_or_mutal()
+
     if False:
         house_dict_tmp = get_session(SESS_KEY_HOUSE)
         for id, house_obj in house_dict_tmp.items():
@@ -1281,10 +1284,62 @@ def get_square():
     web.ctx.env['trace_info']['灾星系统']['盘主灾星信息'] = trace_square_vec
 
 
+# ----------------------- 互溶接纳 -----------------------
+def is_received_or_mutal():
+    star_dict = get_session(key=SESS_KEY_STAR)
+    keys = star_dict.keys()
+
+    for star_a in keys:
+        for star_b in keys:
+            if star_a == star_b:
+                continue
+
+            b_receive, level = is_received(star_dict[star_a], star_dict[star_b])
+
+            if b_receive:
+                logger.debug(f'{star_a} 被 {star_b} 接纳，{level}')
+
+def is_received(a: Star, b: Star):
+    knowledge_dict = get_session(key=SESS_KEY_KNOWLEDGE)
+    domicile_dict = knowledge_dict['入庙']  # {星座: 星体}
+    exaltation_dict = knowledge_dict['耀升']  # {星座: 星体}
+
+    # 接纳：本垣、曜升、三分
+    name_a, name_b, const_a, const_b = a.star, b.star, a.constellation, b.constellation
+
+    # 本垣: a的落座是否在b的入庙星座
+    if domicile_dict[const_a] == name_b:
+        return True, '本垣'
+
+    # 曜升: a的落座是否在b的耀升星座
+    if const_a in exaltation_dict and exaltation_dict[const_a] == name_b:
+        return True, '耀升'
+
+    # 三分计算逻辑：若 b 在a的星座，是否三分界主？
+    if is_triplicity_ruler(star_name=name_b, target_constellation=const_a):
+        return True, '三分'
+
+    return False, ''
+
+
+    # if const_a not in domicile_dict:
+    #     logger.warning(f'星座:{const_a} 不在 knowledge_dict 字典...')
+    #     return False
+    #
+    # if const_b not in domicile_dict:
+    #     logger.warning(f'星座:{const_b} 不在 knowledge_dict 字典...')
+    #     return False
+
+
+
+
+
+
+
 # ----------------------- 计算先天尊贵 --------------------
-# 三分
-def is_triplicity_ruler(star_name: str, target_constellation: str, ):
+def is_triplicity_ruler(star_name: str, target_constellation: str):
     '''
+    # 三分
     [星体-四元素]
     火象 = 太阳、木星、土星
     风象 = 土星、水星、木星
@@ -1372,8 +1427,6 @@ def is_exaltation_ruler(star: str, target_const: str):
         return True
 
     return False
-
-
 
 
 # ----------------------- 夏令时 -------------------------
