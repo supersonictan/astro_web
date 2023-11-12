@@ -1299,7 +1299,16 @@ def is_received_or_mutal():
             if b_receive:
                 logger.debug(f'{star_a} 被 {star_b} 接纳，{level}')
 
+
+black_key = {'天王', '海王', '冥王', '北交', '凯龙', '婚神', '上升', '中天', '下降', '天底'}
 def is_received(a: Star, b: Star):
+    if a.star in black_key or b.star in black_key:
+        return False
+
+    # 先判断是否有相位
+    if b.star not in a.aspect_dict:
+        return False, ''
+
     knowledge_dict = get_session(key=SESS_KEY_KNOWLEDGE)
     domicile_dict = knowledge_dict['入庙']  # {星座: 星体}
     exaltation_dict = knowledge_dict['耀升']  # {星座: 星体}
@@ -1630,7 +1639,7 @@ def init_star_boundry_dict():
 
             degree_before = degree
 
-    logger.debug(boundry_dict)
+    # logger.debug(boundry_dict)
 
     set_session(TermKey, boundry_dict)
 
