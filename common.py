@@ -1303,7 +1303,7 @@ def is_received_or_mutal():
 black_key = {'天王', '海王', '冥王', '北交', '凯龙', '婚神', '上升', '中天', '下降', '天底'}
 def is_received(a: Star, b: Star):
     if a.star in black_key or b.star in black_key:
-        return False
+        return False, ''
 
     # 先判断是否有相位
     if b.star not in a.aspect_dict:
