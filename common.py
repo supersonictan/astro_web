@@ -133,15 +133,26 @@ def basic_analyse():
     dump_obj(soup_almuten, get_session(FILENAME_SOUP2))
 
     # 解析宫神星网结果
-    _parse_almuten_star(soup_almuten)
+    # _parse_almuten_star(soup_almuten)
+    if False:
+        house_dict_tmp = get_session(SESS_KEY_HOUSE)
+        for id, house_obj in house_dict_tmp.items():
+            logger.debug(f'宫神星\t{id}宫\t宫主星:{house_obj.ruler}\t宫内星: {house_obj.loc_star}')
+
 
     # 解析爱星盘结果
-    _parse_ixingpan_star(soup_ixingpan)
     _parse_ixingpan_house(soup_ixingpan)
+    _parse_ixingpan_star(soup_ixingpan)
     _parse_ixingpan_aspect(soup_ixingpan)
 
     # 互溶接纳
     is_received_or_mutal()
+
+    if True:
+        house_dict_tmp = get_session(SESS_KEY_HOUSE)
+        for id, house_obj in house_dict_tmp.items():
+            logger.debug(f'宫神星\t{id}宫\t宫主星:{house_obj.ruler}\t宫内星: {house_obj.loc_star}')
+
 
     if True:
         # house_dict_tmp = get_session(SESS_KEY_HOUSE)
@@ -162,7 +173,22 @@ def basic_analyse():
             is_term = star_obj.is_term
             is_face = star_obj.is_face
 
-            logger.debug(f'-->{name} 落{house}宫 {const}座 {degree}° 分:{score} 庙:{is_domicile} 旺:{is_exaltation} 三:{is_triplicity} 界:{is_term} 十:{is_face}')
+            rec_vec = []
+            for k, obj in star_obj.recepted_dict.items():
+                msg = f'与{obj.star_b}互容'
+
+                if obj.action_name == '接纳':
+                    msg = f'被{obj.star_b}接纳'
+
+                rec_vec.append(msg)
+
+            rec_msg2 = ''
+            if len(rec_vec) != 0:
+                rec_msg = ';'.join(rec_vec)
+                rec_msg2 = f'接纳信息: {rec_msg}'
+
+            # logger.debug(f'-->{name} 落{house}宫 {const}座 {degree}° 分:{score} 庙:{is_domicile} 旺:{is_exaltation} 三:{is_triplicity} 界:{is_term} 十:{is_face}')
+            logger.debug(f'-->{name}\t落{house}宫\t{const}座\t{degree}°\t得分:{score}\t{rec_msg2}')
 
 
 
@@ -298,6 +324,10 @@ def parse_work():
     sub_vec = []
     for loc_star in house_dict[10].loc_star:
         search_key = f'{loc_star}10宫'
+
+        if search_key not in jobs_star_dict:
+            continue
+
         val = jobs_star_dict[search_key]
 
         reason_debug = f'【{search_key}】' if is_debug else ''
@@ -1040,6 +1070,8 @@ def _parse_almuten_star(soup):
 
         r = Recepted(star_a=star_a, star_b=star_b, action_name=feature, level=matches[-1])
 
+        logger.debug(f'宫神星 a={star_a} b={star_b} feature={feature} level={matches[-1]}')
+
         # 互溶接纳、接纳只保留互溶接纳
         if star_b in web.ctx.env['star_dict'][star_a].recepted_dict and \
                 web.ctx.env['star_dict'][star_a].recepted_dict[star_b].action_name == '接纳' and feature == '互容接纳':
@@ -1154,6 +1186,9 @@ def _parse_ixingpan_star(soup):
 
         web.ctx.env[SESS_KEY_STAR][star].score = score
 
+        if house != -1:
+            web.ctx.env[SESS_KEY_HOUSE][house].loc_star.append(star)
+
         # logger.debug(f'-->星体:{star} 星座:{constellation} 度数:{degree} 庙:{is_domicile} 旺:{is_exaltation} 三:{is_triplicity} 界:{is_term} 十:{is_face}  得分:{score}\t宫神分:{web.ctx.env["star_dict"][star].score}宫位:{house}')
 
 
@@ -1188,9 +1223,12 @@ def _parse_ixingpan_house(soup):
         else:
             house = -1
 
-        # Update house_dict
-        if house in web.ctx.env['star_dict']:
-            web.ctx.env['house_dict'][house].constellation = constellation
+        ruler_loc = int(lord_loc.replace('宫', ''))
+
+        house_obj = House(house_num=house, ruler=lord, ruler_loc=ruler_loc)
+        house_obj.constellation = constellation
+
+        web.ctx.env['house_dict'][house] = house_obj
 
 
 def _parse_ixingpan_aspect(soup):
@@ -1314,11 +1352,18 @@ def is_received_or_mutal():
                 continue
 
             b_receive, level = is_received(star_dict[star_a], star_dict[star_b])
+            b_mutal = is_mutal(star_dict[star_a], star_dict[star_b])
+
+            if b_receive or b_mutal:
+                feature = '接纳' if b_receive else '互容'
+                lvl = level if b_receive else '耀升起'
+                r = Recepted(star_a=star_a, star_b=star_b, action_name=feature, level=lvl)
+
+                web.ctx.env[SESS_KEY_STAR][star_a].recepted_dict[star_b] = r
 
             if b_receive:
                 logger.debug(f'{star_a} 被 {star_b} 接纳，{level}')
 
-            b_mutal = is_mutal(star_dict[star_a], star_dict[star_b])
             if b_mutal:
                 logger.debug(f'{star_a} {star_b} 互容')
 
@@ -1612,7 +1657,7 @@ def init_session():
         用户dist、brithday等信息
     """
     init_knowledge_dict()
-    logger.debug('成功加载字典文件...')
+    logger.debug('\n\n成功加载字典文件...')
 
     init_trace()
     logger.debug('成功初始化trace变量...')
