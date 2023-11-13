@@ -175,10 +175,10 @@ def basic_analyse():
 
             rec_vec = []
             for k, obj in star_obj.recepted_dict.items():
-                msg = f'与{obj.star_b}互容'
+                msg = f'与「{obj.star_b}」互容'
 
                 if obj.action_name == '接纳':
-                    msg = f'被{obj.star_b}接纳'
+                    msg = f'被「{obj.star_b}」接纳'
 
                 rec_vec.append(msg)
 
@@ -188,7 +188,7 @@ def basic_analyse():
                 rec_msg2 = f'接纳信息: {rec_msg}'
 
             # logger.debug(f'-->{name} 落{house}宫 {const}座 {degree}° 分:{score} 庙:{is_domicile} 旺:{is_exaltation} 三:{is_triplicity} 界:{is_term} 十:{is_face}')
-            logger.debug(f'-->{name}\t落{house}宫\t{const}座\t{degree}°\t得分:{score}\t{rec_msg2}')
+            logger.debug(f'-->{name}\t落{house}宫\t{const}座\t{degree}°\t得分:{score}\t\t{rec_msg2}')
 
 
 
