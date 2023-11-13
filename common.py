@@ -79,7 +79,7 @@ class Star:
         self.constellation: str = ''
 
         self.degree = 0
-        self.is_term_ruler = 0  # 界
+        self.is_term = 0  # 界
         self.is_domicile = 0  # 入庙
         self.is_exaltation = 0  # 耀升
         self.is_triplicity = 0  # 三份
@@ -143,15 +143,28 @@ def basic_analyse():
     # 互溶接纳
     is_received_or_mutal()
 
-    if False:
-        house_dict_tmp = get_session(SESS_KEY_HOUSE)
-        for id, house_obj in house_dict_tmp.items():
-            logger.debug(f'{id}宫，宫内星: {house_obj.loc_star}')
+    if True:
+        # house_dict_tmp = get_session(SESS_KEY_HOUSE)
+        # for id, house_obj in house_dict_tmp.items():
+        #     logger.debug(f'{id}宫，宫内星: {house_obj.loc_star}')
 
-        logger.debug('-----------------------------')
+        logger.debug('\n---------------------------------------')
         star_dict_tmp = get_session(SESS_KEY_STAR)
         for name, star_obj in star_dict_tmp.items():
-            logger.debug(f'{name}, {star_obj.house}宫')
+            # logger.debug(f'{name}, {star_obj.house}宫')
+            const = star_obj.constellation
+            degree = star_obj.degree
+            house = star_obj.house
+            score = star_obj.score
+            is_domicile = star_obj.is_domicile
+            is_exaltation = star_obj.is_exaltation
+            is_triplicity = star_obj.is_triplicity
+            is_term = star_obj.is_term
+            is_face = star_obj.is_face
+
+            logger.debug(f'-->{name} 落{house}宫 {const}座 {degree}° 分:{score} 庙:{is_domicile} 旺:{is_exaltation} 三:{is_triplicity} 界:{is_term} 十:{is_face}')
+
+
 
     get_square()
 
@@ -811,7 +824,7 @@ def _fetch_ixingpan_soup(name, female=1, dist='1550', birthday_time='1962-08-08 
     logger.debug(f'爱星盘请求串 {url}')
 
     # 发送GET请求
-    response = requests.get(url, cookies={'xp_planets_natal': '0,1,2,3,4,5,6,7,8,9,25,26,27,28,15,19,10,29'})
+    response = requests.get(url, cookies={'xp_planets_natal': '0,1,2,3,4,5,6,7,8,9,25,26,27,28,15,19,10,29', 'xp_aspects_natal': '0:8,180:8,120:8,90:8,60:8'})
 
     # 获取返回的HTML源码
     html_str = response.text
@@ -1133,7 +1146,7 @@ def _parse_ixingpan_star(soup):
 
         web.ctx.env[SESS_KEY_STAR][star].is_triplicity = is_triplicity
         web.ctx.env[SESS_KEY_STAR][star].is_face = is_face
-        web.ctx.env[SESS_KEY_STAR][star].is_term_ruler = is_term
+        web.ctx.env[SESS_KEY_STAR][star].is_term = is_term
 
         score = 5 * is_domicile + 4 * is_exaltation + 3 * is_triplicity + 2 * is_term + 1*is_face - 4*is_detriment - 5*is_fall
         if star not in {'太阳', '月亮', '水星', '木星', '火星', '土星', '金星'}:
@@ -1141,8 +1154,7 @@ def _parse_ixingpan_star(soup):
 
         web.ctx.env[SESS_KEY_STAR][star].score = score
 
-        logger.debug(f'-->星体:{star} 星座:{constellation} 度数:{degree} 庙:{is_domicile} 旺:{is_exaltation} 三:{is_triplicity} 界:{is_term} 十:{is_face}  得分:{score}\t宫神分:{web.ctx.env["star_dict"][star].score}宫位:{house}')
-
+        # logger.debug(f'-->星体:{star} 星座:{constellation} 度数:{degree} 庙:{is_domicile} 旺:{is_exaltation} 三:{is_triplicity} 界:{is_term} 十:{is_face}  得分:{score}\t宫神分:{web.ctx.env["star_dict"][star].score}宫位:{house}')
 
 
 def _parse_ixingpan_house(soup):
@@ -1195,6 +1207,8 @@ def _parse_ixingpan_aspect(soup):
         star_a = tds[0].text.strip()
         star_b = tds[2].text.strip()
         aspect = tds[1].text.strip()
+
+        # logger.debug(f'{star_a} {star_b} {aspect}')
 
         aspect = aspect if aspect != '拱' else '三合'
 
@@ -1285,6 +1299,8 @@ def get_square():
 
 
 # ----------------------- 互溶接纳 -----------------------
+black_key = {'天王', '海王', '冥王', '北交', '福点', '凯龙', '婚神', '上升', '中天', '下降', '天底'}
+
 def is_received_or_mutal():
     star_dict = get_session(key=SESS_KEY_STAR)
     keys = star_dict.keys()
@@ -1294,14 +1310,49 @@ def is_received_or_mutal():
             if star_a == star_b:
                 continue
 
+            if star_a in black_key or star_b in black_key:
+                continue
+
             b_receive, level = is_received(star_dict[star_a], star_dict[star_b])
 
             if b_receive:
                 logger.debug(f'{star_a} 被 {star_b} 接纳，{level}')
 
+            b_mutal = is_mutal(star_dict[star_a], star_dict[star_b])
+            if b_mutal:
+                logger.debug(f'{star_a} {star_b} 互容')
 
-black_key = {'天王', '海王', '冥王', '北交', '凯龙', '婚神', '上升', '中天', '下降', '天底'}
+
+
+def is_mutal(a: Star, b: Star):
+    if a.star in black_key or b.star in black_key:
+        return False, ''
+
+    knowledge_dict = get_session(key=SESS_KEY_KNOWLEDGE)
+    domicile_dict = knowledge_dict['入庙']  # {星座: 星体}
+    exaltation_dict = knowledge_dict['耀升']  # {星座: 星体}
+
+    # 接纳：本垣、曜升、三分
+    name_a, name_b, const_a, const_b = a.star, b.star, a.constellation, b.constellation
+
+    # 本垣: a的落座是否在b的入庙星座
+    a_ret, b_ret = False, False
+    if domicile_dict[const_a] == name_b or (const_a in exaltation_dict and exaltation_dict[const_a] == name_b):
+        a_ret = True
+
+    if domicile_dict[const_b] == name_a or (const_b in exaltation_dict and exaltation_dict[const_b] == name_a):
+        b_ret = True
+
+    if a_ret and b_ret:
+        return True
+
+    return False
+
+
 def is_received(a: Star, b: Star):
+    name_a, name_b, const_a, const_b = a.star, b.star, a.constellation, b.constellation
+    # logger.debug(f'解析接纳: {name_a}, {const_a} {name_b} {const_b}')
+
     if a.star in black_key or b.star in black_key:
         return False, ''
 
@@ -1314,8 +1365,7 @@ def is_received(a: Star, b: Star):
     exaltation_dict = knowledge_dict['耀升']  # {星座: 星体}
 
     # 接纳：本垣、曜升、三分
-    name_a, name_b, const_a, const_b = a.star, b.star, a.constellation, b.constellation
-
+    
     # 本垣: a的落座是否在b的入庙星座
     if domicile_dict[const_a] == name_b:
         return True, '本垣'
@@ -1324,9 +1374,9 @@ def is_received(a: Star, b: Star):
     if const_a in exaltation_dict and exaltation_dict[const_a] == name_b:
         return True, '耀升'
 
-    # 三分计算逻辑：若 b 在a的星座，是否三分界主？
-    if is_triplicity_ruler(star_name=name_b, target_constellation=const_a):
-        return True, '三分'
+    # # 三分计算逻辑：若 b 在a的星座，是否三分界主？
+    # if is_triplicity_ruler(star_name=name_b, target_constellation=const_a):
+    #     return True, '三分'
 
     return False, ''
 
