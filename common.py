@@ -200,6 +200,7 @@ def basic_analyse():
     parse_love()
     parse_marrage_2()
     parse_marrage()
+    parse_work_new()
     parse_work()
     parse_study()
 
@@ -275,6 +276,7 @@ def parse_study():
             elif id == 9 and key in sub_dict:
                 set_trace_info('学业', '高中后', [sub_dict[key]])
 
+
 def parse_asc_star():
     is_debug = web.ctx.env['is_debug']
     star_dict = web.ctx.env["star_dict"]
@@ -288,7 +290,6 @@ def parse_asc_star():
     key = f'命主星{asc_house}宫'
     # logger.debug(key)
     desc = knowledge_dict['命主星落宫'][key]
-    logger.debug('3333333333333333333333333')
 
     reason_debug = f'【{key}】' if is_debug else ''
 
@@ -331,6 +332,66 @@ def parse_work_new():
     """
     star_dict = get_session(SESS_KEY_STAR)
     house_dict = get_session(SESS_KEY_HOUSE)
+    constellation_dict = get_session(SESS_KEY_CONST)
+    knowledge_dict = get_session(SESS_KEY_KNOWLEDGE)
+
+    active_dict = knowledge_dict['星座-职业']['开创星座']
+    deactive_dict = knowledge_dict['星座-职业']['保守星座']
+
+    action_dict = knowledge_dict['星座-职业']['行动力星座']
+    persist_dict = knowledge_dict['星座-职业']['毅力星座']
+    watch_dict = knowledge_dict['星座-职业']['协调能力好懂察言观色的星座']
+
+    dependency_dict = knowledge_dict['星座-职业']['独立作业']
+    join_dict = knowledge_dict['星座-职业']['参与作业']
+    nojoin_dict = knowledge_dict['星座-职业']['旁观作业']
+
+    logger.debug(active_dict)
+    logger.debug(deactive_dict)
+
+    logger.debug(action_dict)
+    logger.debug(persist_dict)
+    logger.debug(watch_dict)
+
+    logger.debug(dependency_dict)
+    logger.debug(join_dict)
+    logger.debug(nojoin_dict)
+
+    '''
+    Step1
+    保守倾向VS非保守倾向
+        1、如果白羊座、双子座、狮子座、天秤座、射手座和水瓶座等六个星座的点数加总
+        2、多于金牛座、巨蟹座、处女座、天蝎座、摩羯座和双鱼座等六个星座的点数加总，
+        就表示你比较 适合开创性、冒险性的工作，因为你的前进行动力是比较明显的。如果情形正好相反，那么就表示你比较适合稳定性、规律性的工作，因为你比较偏好稳扎稳打。 
+    '''
+    active_num, deactive_num = 0, 0
+
+
+    '''
+    Step2
+    老板倾向VS职员倾向
+        1、如果白羊座、双子座、狮子座、天秤座、射手座和水瓶座等六个星座的点数加总，
+        2、多于金牛座、巨蟹座、处女座、天蝎座、摩羯座和双鱼座等六个星座的点数加总，
+        就表示你想当 老板的企图心是比较强烈的，因为你的活动力比较强。如果情形正好相反，那么就表示你对于受雇于人的接受程度比较高，因为你的可塑性比较佳。 
+    '''
+
+    '''
+    Step3
+    行动潜能、沈着潜能、沟通潜能 
+        1、如果白羊座、巨蟹座、天秤座和摩羯座等四个星座的点数加总比较多，就表示你的实际行动力比较强，说了就会去做。
+        2、如果金牛座、狮子座、天蝎座和水瓶座等四个星座的点数加 总比较多，就表示你的长期奋斗力是比较强的，不轻易放弃你的目标。
+        3、如果双子座、处女座、射手座和双鱼座等四个星座的点数加总比较多，就表示你有着良好的事务协调能力，很懂得察颜观色。 
+    '''
+
+    '''
+    Step4
+        1、独立作业
+            如果白羊座、巨蟹座、天秤座和摩羯座等四个星座的点数加总比较多，就表示你偏好采取独立作业，不喜欢别人对你的工作多加干涉。
+        2、参与作业
+            如果金牛座、狮子座、天蝎座和水瓶座等四 个星座的点数加总比较多，就表示你会欢迎别人加入你的工作行列，但却希望别人能听从你的指导。
+        3、旁观作业
+            如果双子座、处女座、射手座和双鱼座等四个星座的点数加总比较多，就表示 你会参考别人的作业方式，吸收别人的优点或特色。 
+    '''
 
 
     '''
