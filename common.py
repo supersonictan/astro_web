@@ -105,6 +105,12 @@ class Star:
         return msg
 
 
+class Constellation:
+    def __init__(self, name: str):
+        self.name: str = name
+        self.star_vec: List[str] = []
+
+
 class House:
     def __init__(self, house_num: int, ruler: str, ruler_loc: int):
         self.house_num = house_num
@@ -129,16 +135,11 @@ def basic_analyse():
         logger.error(f'basic_analyse._get_basic_soup_from_http 执行失败，err={error_msg}')
         return
 
-    dump_obj(soup_ixingpan, get_session(FILENAME_SOUP1))
+    # dump_obj(soup_ixingpan, get_session(FILENAME_SOUP1))
     dump_obj(soup_almuten, get_session(FILENAME_SOUP2))
 
-    # 解析宫神星网结果
+    # 解析宫神星网结果, 不删因为之后法达可能需要
     # _parse_almuten_star(soup_almuten)
-    if False:
-        house_dict_tmp = get_session(SESS_KEY_HOUSE)
-        for id, house_obj in house_dict_tmp.items():
-            logger.debug(f'宫神星\t{id}宫\t宫主星:{house_obj.ruler}\t宫内星: {house_obj.loc_star}')
-
 
     # 解析爱星盘结果
     _parse_ixingpan_house(soup_ixingpan)
@@ -149,17 +150,12 @@ def basic_analyse():
     is_received_or_mutal()
 
     if True:
+        logger.debug('\n------------------- Debug 宫位信息 --------------------')
         house_dict_tmp = get_session(SESS_KEY_HOUSE)
         for id, house_obj in house_dict_tmp.items():
-            logger.debug(f'宫神星\t{id}宫\t宫主星:{house_obj.ruler}\t宫内星: {house_obj.loc_star}')
+            logger.debug(f'{id}宫\t宫主星:{house_obj.ruler}\t宫内星: {house_obj.loc_star}')
 
-
-    if True:
-        # house_dict_tmp = get_session(SESS_KEY_HOUSE)
-        # for id, house_obj in house_dict_tmp.items():
-        #     logger.debug(f'{id}宫，宫内星: {house_obj.loc_star}')
-
-        logger.debug('\n---------------------------------------')
+        logger.debug('\n---------------------Debug 行星信息--------------------')
         star_dict_tmp = get_session(SESS_KEY_STAR)
         for name, star_obj in star_dict_tmp.items():
             # logger.debug(f'{name}, {star_obj.house}宫')
@@ -190,6 +186,12 @@ def basic_analyse():
             # logger.debug(f'-->{name} 落{house}宫 {const}座 {degree}° 分:{score} 庙:{is_domicile} 旺:{is_exaltation} 三:{is_triplicity} 界:{is_term} 十:{is_face}')
             logger.debug(f'-->{name}\t落{house}宫\t{const}座\t{degree}°\t得分:{score}\t\t{rec_msg2}')
 
+        logger.debug('\n------------------- Debug 星座信息 --------------------')
+        dict_tmp = get_session(SESS_KEY_CONST)
+        for const_name, obj in dict_tmp.items():
+            if len(obj.star_vec) == 0:
+                continue
+            logger.debug(f'{const_name}座\t星体:{" ".join(obj.star_vec)}')
 
 
     get_square()
@@ -293,6 +295,51 @@ def parse_asc_star():
     set_trace_info(DomainAsc, '重点概括', [f'{reason_debug}{desc}'])
 
 
+def parse_work_new():
+    """
+    https://www.douban.com/group/xuanxue/
+    1、纲领：如果你要建议一个人去发展事业的话，你是要建议他去从事比较有把握赚到钱的行业，
+        还是建议他去从事可以发挥才能，或自己所感兴趣的行业？当然，如果既能够发挥自己的才华，又能够赚得不少的钱，那是最好的理想态
+    2、可得知在职业的选择上有两条路可循：一是从事自已所喜欢的工作，并试图在职场上发挥自己的才能，这时候的工作所得可能难以得偿所愿，只好安慰自己说“我喜欢这项工作”
+        二是完全以金钱作导向，先赚再说，从事於可让自己比较快赚到钱的行业，或者说从事财运方面比较好的行业
+    3、一是上天特别眷顾的人，既可以发挥专长，又可以赚得较多的钱；
+        二是天生运气比较背的人，不但缺乏专长，或者是有才难施、有志难伸，并且老是赚得比别人少的人。
+        前一种人，应该多多珍惜自己的福份；而後一种人，只好比别人更努力些了。
+
+    1.当把第十宫和第十一宫结合起来看时，如果这两个宫位皆有较多的行星落入，那麽通常是天生注定要自己当老板的，不管是大老板或小老板。
+    2.而如果这两个宫位内都没有行星落入，那麽受雇於人的可能性比较高，假如是自行创业当老板，则可能比较缺乏得力助手，或者容易蒙受员工的气。
+    3.如果第十宫内有行星，而第十一宫内没有，那麽有机会自行创业，但公司的规模较小，或只是开个个人工作室，或者任职於公家机关当个主管。
+    4.相对地，如果第十一宫内有星，而第十宫内无星，则可能受雇於大公司，或从事於需要与许多人接触的行业，特别是要接触较多的陌生人，比如：互联网相关、老师、培训等
+
+    【11宫，团体朋友宫】：主要是涉及到人的因素，偏重於人事管理和人脉经营，与第十宫的涉及到经营、管理和销售有所不同
+    第十一宫是主宰着团体、组织和友谊关系，所以当一个人是受雇於中大型公司(以公司员工的人数多寡来看)时，第十一宫就会发挥其对於职业的影响力。
+    通常，当太阳、月亮或有叁颗以上的行星落入第十一宫内时，有较多的机会任职於大公司，或者是可利用广阔的人脉来发展事业。
+    这是因为第十一宫主要是涉及到人的因素，偏重於人事管理和人脉经营，与第十宫的涉及到经营、管理和销售有所不同。
+    打个譬喻来说，第十宫就好像是公司里的总经理，是实际经营上的负责人，特别是与业务的开拓有关；
+    而第十一宫就好像是公司里的董事长，是名称上的负责人，但未必实际参与经营，可能只是出资较多的人，只要懂得知人善用，大可不必事必恭亲。
+
+    【10宫】
+    第十宫(事业宫)是代表着一个人的事业倾向、社会名声和地位。
+    所以，当你的占星命盘上有行星落入第十宫内时，就可以说你未来的事业发展是有迹可寻的。
+    特别是如果第十宫内有太阳、月亮或超过叁颗以上的行星落入的话，那麽就表示你具有当老板的命格，
+    也可以说在事业的发展上，你具备了独当一面的基本条件，而你也会是比较不愿意屈就在他人之下的，也可以说是你的职业竞争力会是比较强势的；
+    同时，也表示你所从事的职业，很可能会与第十宫内的行星有关。而如果你是受雇於人的话，那麽第十宫内的行星力量的加强，时常是指示着可以身任主管之职。
+    还有，第十宫内的强势也有助於知名度的提升，可以担任领导者的角色。
+    但相对地，第十宫也代表着一种责任，因为居上位者自然也要负起较多的职责。
+
+    :return:
+    """
+    star_dict = get_session(SESS_KEY_STAR)
+    house_dict = get_session(SESS_KEY_HOUSE)
+
+
+    '''
+        因为你的活动力比较强
+        从星体落座看，你比较偏向「保守倾向」，比较适合稳扎稳打，长期从事同性质的工作，比较不合适跨行经营他业
+        爱因斯坦的「职员倾向」（六点）比较浓厚了点，可以接受既定工作的安排，蛮安于现职的。
+    '''
+
+
 def parse_work():
     # 10r 飞宫
 
@@ -336,6 +383,30 @@ def parse_work():
     if len(sub_vec) > 0:
         set_trace_info('事业', '二档适合的职业', sub_vec)
 
+    set_trace_info('事业', '', ['一般上述的职业类型在人的一生大都会遇到。职业类型的转换需要推运的关键点来查看。'])
+
+def parse_bad_spouse():
+    """
+    判断低嫁娶
+    - 还有同事或者对方服务自己的意思
+    - 比较容易看上比自己条件低的人。
+    - 七飞六就是有另一半工作中认识的意思，但感觉7飞6的谈的很多都是下属，或者虽然工作认识，但自己后来工作比对方好很多。一般比自己级别低或者是平级
+    :return:
+    """
+
+    star_dict, house_dict = get_session(SESS_KEY_STAR), get_session(SESS_KEY_HOUSE)
+
+    ruler_7 = house_dict[7].ruler
+    ruler_loc = house_dict[7].ruler_loc
+
+    if ruler_loc != 7:
+        return '', ''
+
+    field_name = '是否会低嫁/娶'
+    cause = f'{ruler_7}在你盘中代表配偶，跑去了服务/工作位置，意味着你可能会看上比自己条件低的人，当然这只是一种可能，也有可能出现配偶服务自己的意思，也或者另一半在工作中认识(平级或低于自己).'
+
+    return  field_name, cause
+
 
 def parse_marrage():
     is_debug = web.ctx.env['is_debug']
@@ -359,6 +430,10 @@ def parse_marrage():
         trace_vec_appearance.append(f'{reason_debug}{appearance_dict[star_name]}')
 
     set_trace_info('婚姻', '配偶是什么类型的', trace_vec_appearance)
+
+    # 是否低嫁娶
+    field_name, cause = parse_bad_spouse()
+    set_trace_info('婚姻', field_name, [cause])
 
     '''
     黄道状态是否良好（分数的高低）代表配偶自身的能力or先天健康
@@ -1105,6 +1180,8 @@ def extract_constellation(input_str):
 
 pattern_constellation = re.compile(r'\([^)]*\)'r'(.+?)\s*\((\d+).*?\)(?:\s*\((.*?)\))?$')
 pattern_house = re.compile(r'\d+')
+constellation_whitelist = {'天王', '海王', '冥王', '太阳', '月亮', '水星', '火星', '木星', '土星', '金星'}
+
 def _parse_ixingpan_star(soup):
     '''
     解析包括：
@@ -1190,6 +1267,15 @@ def _parse_ixingpan_star(soup):
             web.ctx.env[SESS_KEY_HOUSE][house].loc_star.append(star)
 
         # logger.debug(f'-->星体:{star} 星座:{constellation} 度数:{degree} 庙:{is_domicile} 旺:{is_exaltation} 三:{is_triplicity} 界:{is_term} 十:{is_face}  得分:{score}\t宫神分:{web.ctx.env["star_dict"][star].score}宫位:{house}')
+
+        # Update Constellation
+        if star in constellation_whitelist:
+            if constellation in get_session(SESS_KEY_CONST):
+                get_session(SESS_KEY_CONST)[constellation].star_vec.append(star)
+            else:
+                c = Constellation(name=constellation)
+                c.star_vec.append(star)
+                web.ctx.env[SESS_KEY_CONST][constellation] = c
 
 
 def _parse_ixingpan_house(soup):
@@ -1748,6 +1834,10 @@ def init_trace():
         house_dict: Dict[int, House] = {}
         set_session(SESS_KEY_HOUSE, house_dict)
 
+    if SESS_KEY_CONST not in web.ctx.env:
+        constellation_dict: Dict[str, Constellation] = {}
+        set_session(SESS_KEY_CONST, constellation_dict)
+
     all_trace_dict: Dict[str, Dict[str, List[str]]] = {}
 
     disaster_trace_dict: Dict[str, List[str]] = {}
@@ -1824,17 +1914,17 @@ def init_check_cache():
 
     filename_req = f'{folder_path}/request.log'
     filename_report = f'{folder_path}/report_{from_user}_{get_session(BIRTHDAY_KEY2)}_{get_session(DIST_KEY)}.pkl'
-    filename_soup1 = f'{folder_path}/soup_{from_user}_{get_session(BIRTHDAY_KEY2)}_{get_session(DIST_KEY)}_almuten.pickle'
+    # filename_soup1 = f'{folder_path}/soup_{from_user}_{get_session(BIRTHDAY_KEY2)}_{get_session(DIST_KEY)}_almuten.pickle'
     filename_soup2 = f'{folder_path}/soup_{from_user}_{get_session(BIRTHDAY_KEY2)}_{get_session(DIST_KEY)}_ixingpan.pickle'
 
     set_session(FILENAME_REQ, filename_req)
     set_session(FILENAME_REPORT, filename_report)
-    set_session(FILENAME_SOUP1, filename_soup1)
+    # set_session(FILENAME_SOUP1, filename_soup1)
     set_session(FILENAME_SOUP2, filename_soup2)
 
     # check 文件存在否
-    a = [HAS_REQ_FILE, HAS_REPORT_FILE, HAS_SOUP1_FILE, HAS_SOUP2_FILE]
-    b = [filename_req, filename_report, filename_soup1, filename_soup2]
+    a = [HAS_REQ_FILE, HAS_REPORT_FILE, HAS_SOUP2_FILE]
+    b = [filename_req, filename_report, filename_soup2]
     for k, v in zip(a, b):
         b = True if os.path.exists(v) else False
         set_session(k, b)

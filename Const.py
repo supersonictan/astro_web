@@ -13,6 +13,7 @@ FILE_KEY_REPORT = 'file_key_report'
 
 SESSION_KEY_TRACE = 'trace_info'
 SESS_KEY_STAR, SESS_KEY_HOUSE, SESS_KEY_KNOWLEDGE = 'star_dict', 'house_dict', 'knowledge_dict'
+SESS_KEY_CONST = 'constellation_dict'
 IS_INPUT_NUM = 'is_input_num'
 
 BIRTHDAY_KEY = 'birthday'
