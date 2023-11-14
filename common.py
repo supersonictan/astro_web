@@ -335,27 +335,16 @@ def parse_work_new():
     constellation_dict = get_session(SESS_KEY_CONST)
     knowledge_dict = get_session(SESS_KEY_KNOWLEDGE)
 
-    active_dict = knowledge_dict['星座-职业']['开创星座']
-    deactive_dict = knowledge_dict['星座-职业']['保守星座']
+    active_vec = knowledge_dict['星座-职业']['开创星座'].split()
+    deactive_vec = knowledge_dict['星座-职业']['保守星座'].split()
 
-    action_dict = knowledge_dict['星座-职业']['行动力星座']
-    persist_dict = knowledge_dict['星座-职业']['毅力星座']
-    watch_dict = knowledge_dict['星座-职业']['协调能力好懂察言观色的星座']
+    action_vec = knowledge_dict['星座-职业']['行动力星座'].split()
+    persist_vec = knowledge_dict['星座-职业']['毅力星座'].split()
+    watch_vec = knowledge_dict['星座-职业']['协调能力好懂察言观色的星座'].split()
 
-    dependency_dict = knowledge_dict['星座-职业']['独立作业']
-    join_dict = knowledge_dict['星座-职业']['参与作业']
-    nojoin_dict = knowledge_dict['星座-职业']['旁观作业']
-
-    logger.debug(active_dict)
-    logger.debug(deactive_dict)
-
-    logger.debug(action_dict)
-    logger.debug(persist_dict)
-    logger.debug(watch_dict)
-
-    logger.debug(dependency_dict)
-    logger.debug(join_dict)
-    logger.debug(nojoin_dict)
+    dependency_vec = knowledge_dict['星座-职业']['独立作业'].split()
+    join_vec = knowledge_dict['星座-职业']['参与作业'].split()
+    nojoin_vec = knowledge_dict['星座-职业']['旁观作业'].split()
 
     '''
     Step1
@@ -364,9 +353,21 @@ def parse_work_new():
         2、多于金牛座、巨蟹座、处女座、天蝎座、摩羯座和双鱼座等六个星座的点数加总，
         就表示你比较 适合开创性、冒险性的工作，因为你的前进行动力是比较明显的。如果情形正好相反，那么就表示你比较适合稳定性、规律性的工作，因为你比较偏好稳扎稳打。 
     '''
-    active_num, deactive_num = 0, 0
+    # active_num, deactive_num, action_num, persist_num, watch_num, dependency_num, join_num, nojoin_num = 0, 0, 0, 0, 0, 0, 0, 0
+    field_vec_vec = [active_vec, deactive_vec, action_vec, persist_vec, watch_vec, dependency_vec, join_vec, nojoin_vec]
+    stat_dict = {}
+    for i in range(len(field_vec_vec)):
+        sub_vec = field_vec_vec[i]
+        for target_const in sub_vec:
+            if target_const not in constellation_dict:
+                continue
 
+            if i in stat_dict:
+                stat_dict[i] += len(constellation_dict[target_const])
+            else:
+                stat_dict[i] = len(constellation_dict[target_const])
 
+    logger.debug(star_dict)
     '''
     Step2
     老板倾向VS职员倾向
