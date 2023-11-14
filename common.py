@@ -335,6 +335,23 @@ def parse_work_new():
     constellation_dict = get_session(SESS_KEY_CONST)
     knowledge_dict = get_session(SESS_KEY_KNOWLEDGE)
 
+    msg_vec = []
+    # ----------------------------- 星盘看创业 ----------------------------
+    star_num_10 = len(house_dict[10].loc_star)
+    star_num_11 = len(house_dict[11].loc_star)
+
+    msg = ''
+    if star_num_10 + star_num_11 >= 5 and star_num_10 >= 2 and star_num_11 >= 2:
+        msg = '看你的事业宫和朋友团体宫很热闹，在合适时候可以创业自己当老板的，不管是大老板或小老板。'
+    elif star_num_10 < 2 and star_num_11 < 2:
+        msg = '受雇于人的可能性比较高，假如是自行创业当老板，则可能比较缺乏得力助手，或者容易蒙受员工的气。'
+    elif star_num_10 >= 3 and star_num_11 < 2:
+        msg = '有机会创业，但公司的规模可能比较小，比如开个个人工作室，或者任职于公务员当个主管。'
+    elif star_num_10 < 2 and star_num_11 >= 3:
+        msg = '有机会再大公司工作，也有可能要与许多人接触的行业，特别是要接触较多的陌生人，比如：互联网相关、老师、培训等'
+
+    msg_vec.append(msg)
+
     active_vec = knowledge_dict['星座-职业']['开创星座'].split()
     deactive_vec = knowledge_dict['星座-职业']['保守星座'].split()
 
@@ -346,45 +363,43 @@ def parse_work_new():
     join_vec = knowledge_dict['星座-职业']['参与作业'].split()
     nojoin_vec = knowledge_dict['星座-职业']['旁观作业'].split()
 
-    '''
-    Step1
-    保守倾向VS非保守倾向
-        1、如果白羊座、双子座、狮子座、天秤座、射手座和水瓶座等六个星座的点数加总
-        2、多于金牛座、巨蟹座、处女座、天蝎座、摩羯座和双鱼座等六个星座的点数加总，
-        就表示你比较 适合开创性、冒险性的工作，因为你的前进行动力是比较明显的。如果情形正好相反，那么就表示你比较适合稳定性、规律性的工作，因为你比较偏好稳扎稳打。 
-    '''
+
     # active_num, deactive_num, action_num, persist_num, watch_num, dependency_num, join_num, nojoin_num = 0, 0, 0, 0, 0, 0, 0, 0
     field_vec_vec = [active_vec, deactive_vec, action_vec, persist_vec, watch_vec, dependency_vec, join_vec, nojoin_vec]
-    stat_dict = {}
+    result_stat_dict = {}
     for i in range(len(field_vec_vec)):
         sub_vec = field_vec_vec[i]
         for target_const in sub_vec:
             if target_const not in constellation_dict:
                 continue
 
-            if i in stat_dict:
-                stat_dict[i] += len(constellation_dict[target_const])
+            if i in result_stat_dict:
+                result_stat_dict[i] += len(constellation_dict[target_const].star_vec)
             else:
-                stat_dict[i] = len(constellation_dict[target_const])
+                result_stat_dict[i] = len(constellation_dict[target_const].star_vec)
 
-    logger.debug(star_dict)
+    logger.debug('\n\n')
+    logger.debug(result_stat_dict)
+
     '''
+    Step1
+    保守倾向VS非保守倾向
+        1、如果白羊座、双子座、狮子座、天秤座、射手座和水瓶座等六个星座的点数加总
+        2、多于金牛座、巨蟹座、处女座、天蝎座、摩羯座和双鱼座等六个星座的点数加总，
+        就表示你比较 适合开创性、冒险性的工作，因为你的前进行动力是比较明显的。如果情形正好相反，那么就表示你比较适合稳定性、规律性的工作，因为你比较偏好稳扎稳打。 
+    
     Step2
     老板倾向VS职员倾向
         1、如果白羊座、双子座、狮子座、天秤座、射手座和水瓶座等六个星座的点数加总，
         2、多于金牛座、巨蟹座、处女座、天蝎座、摩羯座和双鱼座等六个星座的点数加总，
         就表示你想当 老板的企图心是比较强烈的，因为你的活动力比较强。如果情形正好相反，那么就表示你对于受雇于人的接受程度比较高，因为你的可塑性比较佳。 
-    '''
-
-    '''
+        
     Step3
     行动潜能、沈着潜能、沟通潜能 
         1、如果白羊座、巨蟹座、天秤座和摩羯座等四个星座的点数加总比较多，就表示你的实际行动力比较强，说了就会去做。
         2、如果金牛座、狮子座、天蝎座和水瓶座等四个星座的点数加 总比较多，就表示你的长期奋斗力是比较强的，不轻易放弃你的目标。
         3、如果双子座、处女座、射手座和双鱼座等四个星座的点数加总比较多，就表示你有着良好的事务协调能力，很懂得察颜观色。 
-    '''
-
-    '''
+        
     Step4
         1、独立作业
             如果白羊座、巨蟹座、天秤座和摩羯座等四个星座的点数加总比较多，就表示你偏好采取独立作业，不喜欢别人对你的工作多加干涉。
@@ -393,13 +408,37 @@ def parse_work_new():
         3、旁观作业
             如果双子座、处女座、射手座和双鱼座等四个星座的点数加总比较多，就表示 你会参考别人的作业方式，吸收别人的优点或特色。 
     '''
+    msg_vec.append('人的性格可以看出才能和特长所在，职业倾向的一种判断方式是根据特长来（性格≠个人喜欢的）。')
 
+    ratio = round(result_stat_dict[0]*1.0/10*100, 0)
 
-    '''
-        因为你的活动力比较强
-        从星体落座看，你比较偏向「保守倾向」，比较适合稳扎稳打，长期从事同性质的工作，比较不合适跨行经营他业
-        爱因斯坦的「职员倾向」（六点）比较浓厚了点，可以接受既定工作的安排，蛮安于现职的。
-    '''
+    if ratio > 50:
+        msg = f'从性格的保守和非保守看，你{ratio}%的星体分布在偏开拓的星座和宫位；所以呢，你更适合开创性、冒险性的工作，因为你的前进行动力是比较明显的。或者说当老板的企图心是比较强烈的，因为性格上看活动力比较强。看过很多创业老板的盘是这样的，在机会合适的时候可以尝试。'
+    else:
+        msg = f'从性格的保守和非保守看，你{ratio}%的星体分布在偏保守的星座和宫位；所以呢，你更适合较适合稳定性、规律性的工作，因为你性格比较偏好稳扎稳打。而且你的可塑性比较佳，所以受雇于人的接受程度会比较高，如果要创业当老板需要谨慎选择发展领域。'
+
+    msg_vec.append(msg)
+
+    ratio_1 = round(result_stat_dict[2] * 1.0 / 10 * 100, 0)
+    ratio_2 = round(result_stat_dict[3] * 1.0 / 10 * 100, 0)
+    ratio_3 = round(result_stat_dict[4] * 1.0 / 10 * 100, 0)
+
+    if ratio_1 > ratio_2 and ratio_1 > ratio_3:
+        msg = f'从行动力纬度看，你{ratio_1}%的星体分布在偏「行动力强」的星座和宫位；表示你动力比较强，说了就会去做，会是个亲自去执行的人；你像军人、项目经理、警察等职业都需要这些，当然行动力是很多职业的必须品质了。'
+    elif ratio_3 > ratio_2 and ratio_3 > ratio_1:
+        msg = f'从察言观色纬度看，你{ratio_3}%的星体分布在偏协调能力好，懂察言观色的星座和宫位；比如：hr、办公室呀、销售经理、项目经历等职业都可以。'
+    elif ratio_2 > ratio_3 and ratio_2 > ratio_1:
+        msg = f'从坚持、毅力纬度看，你是有优势的；比如：创业、志愿者等工作都可以。'
+
+    ratio_1 = round(result_stat_dict[-3] * 1.0 / 10 * 100, 0)
+    ratio_2 = round(result_stat_dict[-2] * 1.0 / 10 * 100, 0)
+    ratio_3 = round(result_stat_dict[-1] * 1.0 / 10 * 100, 0)
+
+    if ratio_1 > ratio_2 and ratio_1 > ratio_3:
+        msg = f'从合作关系看，你{ratio_1}%的星体分布在偏「独立作业」的星座和宫位；表示你内心更偏独自一个人去品尝自己的工作乐趣。像很多科研、匠人等工作都是不错的，记得爱因斯坦也是这种类型。'
+
+    msg_vec.append(msg)
+    set_trace_info('事业', '关于创业和性格适合工作', msg_vec)
 
 
 def parse_work():
