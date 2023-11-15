@@ -195,7 +195,7 @@ def basic_analyse():
                 rec_msg2 = f'接纳信息: {rec_msg}'
 
             # logger.debug(f'-->{name} 落{house}宫 {const}座 {degree}° 分:{score} 庙:{is_domicile} 旺:{is_exaltation} 三:{is_triplicity} 界:{is_term} 十:{is_face}')
-            logger.debug(f'-->{name}\t落{house}宫\t{const}座\t{degree}°\t得分:{score}\t\t{rec_msg2}')
+            logger.debug(f'-->{name}\t落{house}宫\t{const}座\t{degree}°\t得分:{score}\t\t{rec_msg2}\t守护宫:{" ".join(star_obj.lord_house_vec)}')
 
         logger.debug('\n------------------- Debug 星座信息 --------------------')
         dict_tmp = get_session(SESS_KEY_CONST)
@@ -275,75 +275,6 @@ def parse_wealth():
     【11】2宫主与金星有相位 +1
     【12】2宫主与木星有相位+1
     '''
-    constellation_dict = {'狮子': '太阳',
-                          '巨蟹': '月亮',
-                          '白羊': '火星',
-                          '天蝎': '火星',
-                          '金牛': '金星',
-                          '天秤': '金星',
-                          '双子': '水星',
-                          '处女': '水星',
-                          '射手': '木星',
-                          '双鱼': '木星',
-                          '摩羯': '土星',
-                          '水瓶': '土星'}
-
-    trace_wealth_vec = []
-    ruler2 = house_dict[2].ruler
-    ruler_fudian = constellation_dict[star_dict['福点'].constellation]
-
-    energy = 0
-    aspect_dict = {}  # {冲: 2}
-    # 福点、福点定位星合 [金星，木星，2r] 有相位
-    for star in ['金星', '木星', ruler2]:
-        for target in ['福点', ruler_fudian]:
-            if star in star_dict[target].aspect_dict:
-                energy += 1
-                trace_wealth_vec.append(f'{target}与{star}有相位')
-                asp = star_dict[target].aspect_dict[star].aspect
-                if asp in aspect_dict:
-                    aspect_dict[asp] += 1
-                else:
-                    aspect_dict[asp] = 0
-
-    # 福点定位星是否本身就行 金星、木星
-    if ruler_fudian in ['金星', '木星']:
-        trace_wealth_vec.append(f'福点定位星是金星 or 木星')
-        energy += 1
-
-    # 福点定位星和福点相位
-    if ruler_fudian in star_dict['福点'].aspect_dict:
-        trace_wealth_vec.append(f'福点定位星和福点有相位')
-        energy += 1
-
-    # 2宫主和宫内星有相位
-    for star_in_house in house_dict[2].loc_star:
-        if star_in_house in {'福点', '北交', '凯龙', '婚神', '冥王', '海王', '天王'}:
-            continue
-        if star_in_house in star_dict[ruler2].aspect_dict:
-            trace_wealth_vec.append(f'2r和宫内星有相位')
-            energy += 1
-
-    # 金星 or 木星落2宫内
-    for target in ['金星', '木星']:
-        if target in house_dict[2].loc_star:
-            trace_wealth_vec.append(f'2金星 or 木星落2宫内')
-            energy += 1
-
-    # 2r和金星 or 木星有相位
-    for target in ['金星', '木星']:
-        if target in star_dict[ruler2].aspect_dict:
-            trace_wealth_vec.append(f'2r和金星 or 木星有相位')
-            energy += 1
-
-    # 2r是否是金木
-    # if ruler2 in ['金星', '木星']:
-    #     trace_wealth_vec.append(f'2r是金星 or 木星')
-    #     energy += 1
-
-    # trace_wealth_vec.append(f'2宫总能量数={energy}')
-    trace_wealth_vec.insert(0, f'2宫总能量数={energy}')
-    wealth_trace_dict['财富宫的能量'] = trace_wealth_vec
 
     """2. 钱从哪里来，所接纳自己的星体代表的宫位
         2: 父母财，固定工资
@@ -358,38 +289,47 @@ def parse_wealth():
         11: 粉丝经济、互联网效应、人群、流量
         12:暗财，贪污受贿等
     """
-    search_dict = {'2被1接纳': '财星入命，自己带财，不愁吃喝',
-                   '2被2接纳': '父母财，固定工资',
-                   '2被3接纳': '兄弟姐妹帮助自己',
-                   '2被4接纳': '父母、房子',
-                   '2被5接纳': '桃花子女财',
-                   '2被6接纳': '技术财、工作财',
-                   '2被7接纳': '配偶财、客户财',
-                   '2被8接纳': '金融财、保险财',
-                   '2被9接纳': '高等学历财、撰写、官司、法律、异地',
-                   '2被10接纳': '权利变现、公职、大企业等',
-                   '2被11接纳': '粉丝经济、互联网效应、人群、流量变现',
-                   '2被12接纳': '暗财，玄学，贪污受贿等'}
+    # search_dict = {'2被1接纳': '财星入命，自己带财，不愁吃喝',
+    #                '2被2接纳': '父母财，固定工资',
+    #                '2被3接纳': '兄弟姐妹帮助自己',
+    #                '2被4接纳': '父母、房子',
+    #                '2被5接纳': '桃花子女财',
+    #                '2被6接纳': '技术财、工作财',
+    #                '2被7接纳': '配偶财、客户财',
+    #                '2被8接纳': '金融财、保险财',
+    #                '2被9接纳': '高等学历财、撰写、官司、法律、异地',
+    #                '2被10接纳': '权利变现、公职、大企业等',
+    #                '2被11接纳': '粉丝经济、互联网效应、人群、流量变现',
+    #                '2被12接纳': '暗财，玄学，贪污受贿等'}
 
     # 判断接纳和飞行
-    n_jiena = 0
-    for star_b, recepted in star_dict[ruler2].recepted_dict.items():
-        if '接纳' in recepted.action_name:
-            n_jiena += 1
+    star_dict = get_session(SESS_KEY_STAR)
+    house_dict = get_session(SESS_KEY_HOUSE)
+    knowledge_dict = get_session(SESS_KEY_KNOWLEDGE)
+    ruler2 = house_dict[2].ruler
 
-    trace_wealth_vec2 = [f'接纳数={n_jiena}']
-    wealth_trace_dict['接纳数'] = trace_wealth_vec2
-
-    # 从哪里得财（可能没有）:接纳了2r
-    tmp_result_vec = []
+    # 判断接纳得财
     for star_b, recepted_obj in star_dict[ruler2].recepted_dict.items():
         level = recepted_obj.level
         lord_house_vec = star_dict[star_b].lord_house_vec
         for house_id in lord_house_vec:
             tmp_key = f'2被{house_id}接纳'
-            tmp_result_vec.append(f'【{tmp_key}({level})】{search_dict[tmp_key]}')
+            cause = f'{ruler2}和{star_b}有互容接纳'
+            ret = f'{cause}, 得财方式可以是：{knowledge_dict["得财"][tmp_key]}'
+            add_trace('财富', '从哪里得财', ret)
 
-    wealth_trace_dict['从哪里得财'] = tmp_result_vec
+
+    # 判断宫主星飞2宫得财，只有吉的时候
+    for loc_s in house_dict[2].loc_star:
+        # 判断得分
+        if loc_s not in old_star_list:
+            continue
+        if star_dict[loc_s].score <= 3:
+            continue
+
+        for _ in star_dict[loc_s].lord_house_vec:
+
+
 
     ruler2_loc = star_dict[ruler2].house
     key = f'2飞{ruler2_loc}'
@@ -1471,6 +1411,10 @@ def _parse_ixingpan_star(soup):
     :param soup:
     :return:
     '''
+
+    star_ruler_dict = get_session(SESS_KEY_STAR_RULER)
+    star_dict = web.ctx.env[SESS_KEY_STAR]
+
     tables = soup.find_all('table')
 
     table = tables[5]
@@ -1528,20 +1472,23 @@ def _parse_ixingpan_star(soup):
         is_face = 1 if is_face_ruler(star, constellation) else 0
         is_term = 1 if is_term_ruler(star, constellation) else 0
 
-        web.ctx.env[SESS_KEY_STAR][star].is_domicile = is_domicile
-        web.ctx.env[SESS_KEY_STAR][star].is_exaltation = is_exaltation
-        web.ctx.env[SESS_KEY_STAR][star].is_fall = is_fall
-        web.ctx.env[SESS_KEY_STAR][star].is_detriment = is_detriment
+        star_dict[star].is_domicile = is_domicile
+        star_dict[star].is_exaltation = is_exaltation
+        star_dict[star].is_fall = is_fall
+        star_dict[star].is_detriment = is_detriment
 
-        web.ctx.env[SESS_KEY_STAR][star].is_triplicity = is_triplicity
-        web.ctx.env[SESS_KEY_STAR][star].is_face = is_face
-        web.ctx.env[SESS_KEY_STAR][star].is_term = is_term
+        star_dict[star].is_triplicity = is_triplicity
+        star_dict[star].is_face = is_face
+        star_dict[star].is_term = is_term
 
         score = 5 * is_domicile + 4 * is_exaltation + 3 * is_triplicity + 2 * is_term + 1*is_face - 4*is_detriment - 5*is_fall
         if star not in {'太阳', '月亮', '水星', '木星', '火星', '土星', '金星'}:
             score = -1
 
         web.ctx.env[SESS_KEY_STAR][star].score = score
+
+        if star in star_ruler_dict:
+            star_dict[star].lord_house_vec = star_ruler_dict[star]
 
         if house != -1:
             web.ctx.env[SESS_KEY_HOUSE][house].loc_star.append(star)
@@ -1565,6 +1512,9 @@ def _parse_ixingpan_house(soup):
     :param soup:
     :return:
     '''
+
+    star_ruler_dict = get_session(SESS_KEY_STAR_RULER)
+
     tables = soup.find_all('table')
 
     table = tables[6]
@@ -1595,6 +1545,11 @@ def _parse_ixingpan_house(soup):
         house_obj.constellation = constellation
 
         web.ctx.env['house_dict'][house] = house_obj
+
+        if lord not in star_ruler_dict:
+            star_ruler_dict[lord] = []
+
+        star_ruler_dict[lord].append(house)
 
 
 def _parse_ixingpan_aspect(soup):
@@ -2181,6 +2136,10 @@ def init_trace():
     if SESS_KEY_AFFLICT not in web.ctx.env:
         afflict_dict: Dict[str, Affliction] = {}  # {木星: afflict}
         set_session(SESS_KEY_AFFLICT, afflict_dict)
+
+    if SESS_KEY_STAR_RULER not in web.ctx.env:
+        star_ruler_dict: Dict[str, List[int]] = {}
+        set_session(SESS_KEY_STAR_RULER, star_ruler_dict)
 
     all_trace_dict: Dict[str, Dict[str, List[str]]] = {}
 
