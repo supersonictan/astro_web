@@ -50,9 +50,10 @@ class Recepted:
 
 
 class Aspect:
-    def __init__(self, star_b, aspect=''):
+    def __init__(self, star_b, aspect='', degree: int = 0):
         self.star_b: str = star_b
         self.aspect: str = aspect  # 60°: 六合, 30°: 三合
+        self.degree = degree
 
     def get_debug_info(self):
         msg = f'{self.aspect}{self.star_b}'
@@ -123,6 +124,14 @@ class House:
         return f'{self.house_num}宫主{self.ruler} 落{self.ruler_loc}宫, {self.house_num}宫宫内落星:{self.loc_star}, 宫头星座:{self.constellation}'
 
 
+class Affliction:
+    def __init__(self, star: str):
+        self.star = star  # 被克星
+        self.level_1 = []  # 第一档灾星: 8r ≥ 1r ＞ 12r
+        self.level_2 = []  # 第二档灾星: 土星 = 海王 = 冥王 = 天王
+        self.level_3 = []  # 第三档灾星: 土星 = 凯龙
+
+
 def basic_analyse():
     logger.debug('-------------- invoke basic_analyse --------------------')
     customer_name = get_session(FROMUSER)
@@ -135,8 +144,8 @@ def basic_analyse():
         logger.error(f'basic_analyse._get_basic_soup_from_http 执行失败，err={error_msg}')
         return
 
-    # dump_obj(soup_ixingpan, get_session(FILENAME_SOUP1))
-    dump_obj(soup_almuten, get_session(FILENAME_SOUP2))
+    dump_obj(soup_ixingpan, get_session(FILENAME_SOUP1))
+    # dump_obj(soup_almuten, get_session(FILENAME_SOUP2))
 
     # 解析宫神星网结果, 不删因为之后法达可能需要
     # _parse_almuten_star(soup_almuten)
@@ -148,6 +157,7 @@ def basic_analyse():
 
     # 互溶接纳
     is_received_or_mutal()
+    get_afflict()
 
     if True:
         logger.debug('\n------------------- Debug 宫位信息 --------------------')
@@ -192,6 +202,11 @@ def basic_analyse():
             if len(obj.star_vec) == 0:
                 continue
             logger.debug(f'{const_name}座\t星体:{" ".join(obj.star_vec)}')
+
+        logger.debug('\n------------------- Debug 受克信息 --------------------')
+        dict_tmp = get_session(SESS_KEY_AFFLICT)
+        for star, obj in dict_tmp.items():
+            logger.debug(f'{star}\t一档受克:{" ".join(obj.level_1)}\t二挡受克:{" ".join(obj.level_2)}')
 
 
     get_square()
@@ -238,6 +253,147 @@ def basic_analyse():
     #             # print(f'{index}、{sub}')
     #             # f.writelines(f'{index}、{sub}\n')
     #             ret_vec.append(f'{index}、{sub}')
+
+
+def parse_wealth():
+    """1. 钱怎么来，1r、2r得到接纳 互容"""
+
+    '''
+    【1】福点与金星有相位+1
+    【2】福点与木星有相位 +1
+    【3】福点与2宫主有相位+1
+
+    【4】福点定位星与金星有相位+1
+    【5】福点定位星与木星有相位+1
+    【7】福点定位星与2宫主有相位+1
+
+    【6】福点与福点定位星有相位+1
+    【8】2宫主与2宫内行星有相位+1
+    【9】2宫内落入金星+1
+    【10】2宫内落入木星+1
+    【11】2宫主与金星有相位 +1
+    【12】2宫主与木星有相位+1
+    '''
+    constellation_dict = {'狮子': '太阳',
+                          '巨蟹': '月亮',
+                          '白羊': '火星',
+                          '天蝎': '火星',
+                          '金牛': '金星',
+                          '天秤': '金星',
+                          '双子': '水星',
+                          '处女': '水星',
+                          '射手': '木星',
+                          '双鱼': '木星',
+                          '摩羯': '土星',
+                          '水瓶': '土星'}
+
+    trace_wealth_vec = []
+    ruler2 = house_dict[2].ruler
+    ruler_fudian = constellation_dict[star_dict['福点'].constellation]
+
+    energy = 0
+    aspect_dict = {}  # {冲: 2}
+    # 福点、福点定位星合 [金星，木星，2r] 有相位
+    for star in ['金星', '木星', ruler2]:
+        for target in ['福点', ruler_fudian]:
+            if star in star_dict[target].aspect_dict:
+                energy += 1
+                trace_wealth_vec.append(f'{target}与{star}有相位')
+                asp = star_dict[target].aspect_dict[star].aspect
+                if asp in aspect_dict:
+                    aspect_dict[asp] += 1
+                else:
+                    aspect_dict[asp] = 0
+
+    # 福点定位星是否本身就行 金星、木星
+    if ruler_fudian in ['金星', '木星']:
+        trace_wealth_vec.append(f'福点定位星是金星 or 木星')
+        energy += 1
+
+    # 福点定位星和福点相位
+    if ruler_fudian in star_dict['福点'].aspect_dict:
+        trace_wealth_vec.append(f'福点定位星和福点有相位')
+        energy += 1
+
+    # 2宫主和宫内星有相位
+    for star_in_house in house_dict[2].loc_star:
+        if star_in_house in {'福点', '北交', '凯龙', '婚神', '冥王', '海王', '天王'}:
+            continue
+        if star_in_house in star_dict[ruler2].aspect_dict:
+            trace_wealth_vec.append(f'2r和宫内星有相位')
+            energy += 1
+
+    # 金星 or 木星落2宫内
+    for target in ['金星', '木星']:
+        if target in house_dict[2].loc_star:
+            trace_wealth_vec.append(f'2金星 or 木星落2宫内')
+            energy += 1
+
+    # 2r和金星 or 木星有相位
+    for target in ['金星', '木星']:
+        if target in star_dict[ruler2].aspect_dict:
+            trace_wealth_vec.append(f'2r和金星 or 木星有相位')
+            energy += 1
+
+    # 2r是否是金木
+    # if ruler2 in ['金星', '木星']:
+    #     trace_wealth_vec.append(f'2r是金星 or 木星')
+    #     energy += 1
+
+    # trace_wealth_vec.append(f'2宫总能量数={energy}')
+    trace_wealth_vec.insert(0, f'2宫总能量数={energy}')
+    wealth_trace_dict['财富宫的能量'] = trace_wealth_vec
+
+    """2. 钱从哪里来，所接纳自己的星体代表的宫位
+        2: 父母财，固定工资
+        3: 兄弟姐妹帮助自己
+        4: 父母、房子
+        5: 桃花子女财
+        6: 技术财、工作财
+        7: 配偶财、客户财
+        8: 金融财、保险财
+        9: 高等学历财、官司、法律、异地
+        10: 权利变现、公职、大企业等
+        11: 粉丝经济、互联网效应、人群、流量
+        12:暗财，贪污受贿等
+    """
+    search_dict = {'2被1接纳': '财星入命，自己带财，不愁吃喝',
+                   '2被2接纳': '父母财，固定工资',
+                   '2被3接纳': '兄弟姐妹帮助自己',
+                   '2被4接纳': '父母、房子',
+                   '2被5接纳': '桃花子女财',
+                   '2被6接纳': '技术财、工作财',
+                   '2被7接纳': '配偶财、客户财',
+                   '2被8接纳': '金融财、保险财',
+                   '2被9接纳': '高等学历财、撰写、官司、法律、异地',
+                   '2被10接纳': '权利变现、公职、大企业等',
+                   '2被11接纳': '粉丝经济、互联网效应、人群、流量变现',
+                   '2被12接纳': '暗财，玄学，贪污受贿等'}
+
+    # 判断接纳和飞行
+    n_jiena = 0
+    for star_b, recepted in star_dict[ruler2].recepted_dict.items():
+        if '接纳' in recepted.action_name:
+            n_jiena += 1
+
+    trace_wealth_vec2 = [f'接纳数={n_jiena}']
+    wealth_trace_dict['接纳数'] = trace_wealth_vec2
+
+    # 从哪里得财（可能没有）:接纳了2r
+    tmp_result_vec = []
+    for star_b, recepted_obj in star_dict[ruler2].recepted_dict.items():
+        level = recepted_obj.level
+        lord_house_vec = star_dict[star_b].lord_house_vec
+        for house_id in lord_house_vec:
+            tmp_key = f'2被{house_id}接纳'
+            tmp_result_vec.append(f'【{tmp_key}({level})】{search_dict[tmp_key]}')
+
+    wealth_trace_dict['从哪里得财'] = tmp_result_vec
+
+    ruler2_loc = star_dict[ruler2].house
+    key = f'2飞{ruler2_loc}'
+    wealth_trace_dict['钱会花在什么地方'] = [f'【{key}】{knowledge_dict_old[key]}']
+    all_trace_dict['财富'] = wealth_trace_dict
 
 
 def parse_study():
@@ -336,21 +492,28 @@ def parse_work_new():
     knowledge_dict = get_session(SESS_KEY_KNOWLEDGE)
 
     msg_vec = []
+    msg_vec2 = []
     # ----------------------------- 星盘看创业 ----------------------------
     star_num_10 = len(house_dict[10].loc_star)
     star_num_11 = len(house_dict[11].loc_star)
 
     msg = ''
     if star_num_10 + star_num_11 >= 5 and star_num_10 >= 2 and star_num_11 >= 2:
-        msg = '看你的事业宫和朋友团体宫很热闹，在合适时候可以创业自己当老板的，不管是大老板或小老板。'
+        msg = '看你的事业宫和朋友团体宫能量很足，在合适时候可以创业自己当老板的，不管是大老板或小老板。'
     elif star_num_10 < 2 and star_num_11 < 2:
-        msg = '受雇于人的可能性比较高，假如是自行创业当老板，则可能比较缺乏得力助手，或者容易蒙受员工的气。'
+        msg = '事业和朋友宫的能量不足，受雇于人的可能性比较高，假如是自行创业当老板，则可能比较缺乏得力助手，或者容易受员工的气。'
     elif star_num_10 >= 3 and star_num_11 < 2:
         msg = '有机会创业，但公司的规模可能比较小，比如开个个人工作室，或者任职于公务员当个主管。'
     elif star_num_10 < 2 and star_num_11 >= 3:
-        msg = '有机会再大公司工作，也有可能要与许多人接触的行业，特别是要接触较多的陌生人，比如：互联网相关、老师、培训等'
+        msg = '有机会在大公司工作，也有可能要与许多人接触的行业，特别是要接触较多的陌生人，比如：互联网相关、老师、培训等'
 
     msg_vec.append(msg)
+    set_trace_info('事业', '关于创业', msg_vec)
+
+    # ------------------------ 事业命格 ---------------------
+    # 老板的命格，也可以说在事业的发展上，你具备了独当一面的基本条件，而你也会是比较不愿意屈就在他人之下的，也可以说是你的职业竞争力会是比较强势的；
+    if '太阳' in house_dict[10].loc_star or '月亮' in house_dict[10].loc_star or len(house_dict[10].loc_star) >= 3:
+        set_trace_info('事业', '事业命格', ['具有当老板的命格，也可以说在事业的发展上，你具备了独当一面的基本条件，而你也会是比较不愿意屈就在他人之下的，也可以说是你的职业竞争力会是比较强势的'])
 
     active_vec = knowledge_dict['星座-职业']['开创星座'].split()
     deactive_vec = knowledge_dict['星座-职业']['保守星座'].split()
@@ -408,37 +571,36 @@ def parse_work_new():
         3、旁观作业
             如果双子座、处女座、射手座和双鱼座等四个星座的点数加总比较多，就表示 你会参考别人的作业方式，吸收别人的优点或特色。 
     '''
-    msg_vec.append('人的性格可以看出才能和特长所在，职业倾向的一种判断方式是根据特长来（性格≠个人喜欢的）。')
+    msg_vec2.append('性格可以看出才能和特长所在，从性格特长分析工作（注意性格≠个人喜欢的）。')
 
     ratio = round(result_stat_dict[0]*1.0/10*100, 0)
+    ratio2 = round(result_stat_dict[1]*1.0/10*100, 0)
 
     if ratio > 50:
-        msg = f'从性格的保守和非保守看，你{ratio}%的星体分布在偏开拓的星座和宫位；所以呢，你更适合开创性、冒险性的工作，因为你的前进行动力是比较明显的。或者说当老板的企图心是比较强烈的，因为性格上看活动力比较强。看过很多创业老板的盘是这样的，在机会合适的时候可以尝试。'
+        msg_vec2.append(f'从性格的保守和非保守看，你{ratio}%的星体分布在偏开拓的星座和宫位；所以呢，你更适合开创性、冒险性的工作，因为你的前进行动力是比较明显的。或者说当老板的企图心是比较强烈的，因为性格上看活动力比较强。看过很多创业老板的盘是这样的，在机会合适的时候可以尝试。')
     else:
-        msg = f'从性格的保守和非保守看，你{ratio}%的星体分布在偏保守的星座和宫位；所以呢，你更适合较适合稳定性、规律性的工作，因为你性格比较偏好稳扎稳打。而且你的可塑性比较佳，所以受雇于人的接受程度会比较高，如果要创业当老板需要谨慎选择发展领域。'
-
-    msg_vec.append(msg)
+        msg_vec2.append(f'从性格的保守和非保守看，你{ratio2}%的星体分布在偏保守的星座和宫位；所以呢，你更适合较适合稳定性、规律性的工作，因为你性格比较偏好稳扎稳打。而且你的可塑性比较佳，所以受雇于人的接受程度会比较高，如果要创业当老板需要谨慎选择发展领域。')
 
     ratio_1 = round(result_stat_dict[2] * 1.0 / 10 * 100, 0)
     ratio_2 = round(result_stat_dict[3] * 1.0 / 10 * 100, 0)
     ratio_3 = round(result_stat_dict[4] * 1.0 / 10 * 100, 0)
 
     if ratio_1 > ratio_2 and ratio_1 > ratio_3:
-        msg = f'从行动力纬度看，你{ratio_1}%的星体分布在偏「行动力强」的星座和宫位；表示你动力比较强，说了就会去做，会是个亲自去执行的人；你像军人、项目经理、警察等职业都需要这些，当然行动力是很多职业的必须品质了。'
+        msg_vec2.append(f'从行动力纬度看，你{ratio_1}%的星体分布在偏「行动力强」的星座和宫位；表示你动力比较强，说了就会去做，会是个亲自去执行的人；你像军人、项目经理、警察等职业都需要这些，当然行动力是很多职业的必须品质了。')
     elif ratio_3 > ratio_2 and ratio_3 > ratio_1:
-        msg = f'从察言观色纬度看，你{ratio_3}%的星体分布在偏协调能力好，懂察言观色的星座和宫位；比如：hr、办公室呀、销售经理、项目经历等职业都可以。'
+        msg_vec2.append(f'从察言观色纬度看，你{ratio_3}%的星体分布在偏协调能力好，懂察言观色的星座和宫位；比如：hr、办公室呀、销售经理、项目经历等职业都可以。')
     elif ratio_2 > ratio_3 and ratio_2 > ratio_1:
-        msg = f'从坚持、毅力纬度看，你是有优势的；比如：创业、志愿者等工作都可以。'
+        msg_vec2.append(f'从坚持、毅力纬度看，你是有优势的；比如：创业、志愿者等工作都可以。')
 
-    ratio_1 = round(result_stat_dict[-3] * 1.0 / 10 * 100, 0)
-    ratio_2 = round(result_stat_dict[-2] * 1.0 / 10 * 100, 0)
-    ratio_3 = round(result_stat_dict[-1] * 1.0 / 10 * 100, 0)
+    ratio_1 = round(result_stat_dict[5] * 1.0 / 10 * 100, 0)
+    ratio_2 = round(result_stat_dict[6] * 1.0 / 10 * 100, 0)
+    ratio_3 = round(result_stat_dict[7] * 1.0 / 10 * 100, 0)
 
     if ratio_1 > ratio_2 and ratio_1 > ratio_3:
-        msg = f'从合作关系看，你{ratio_1}%的星体分布在偏「独立作业」的星座和宫位；表示你内心更偏独自一个人去品尝自己的工作乐趣。像很多科研、匠人等工作都是不错的，记得爱因斯坦也是这种类型。'
+        msg_vec2.append(f'从合作关系看，你{ratio_1}%的星体分布在偏「独立作业」的星座和宫位；表示你内心更偏独自一个人去品尝自己的工作乐趣。像很多科研、匠人等工作都是不错的，记得爱因斯坦也是这种类型。')
 
-    msg_vec.append(msg)
-    set_trace_info('事业', '关于创业和性格适合工作', msg_vec)
+    # msg_vec2.append(msg)
+    set_trace_info('事业', '从性格看适合工作', msg_vec2)
 
 
 def parse_work():
@@ -485,6 +647,7 @@ def parse_work():
         set_trace_info('事业', '二档适合的职业', sub_vec)
 
     set_trace_info('事业', '', ['一般上述的职业类型在人的一生大都会遇到。职业类型的转换需要推运的关键点来查看。'])
+
 
 def parse_bad_spouse():
     """
@@ -875,6 +1038,17 @@ def set_trace_info(key, sub_key, msg_vec):
     web.ctx.env['trace_info'][key][sub_key] = msg_vec
 
 
+def add_trace(key, sub_key, msg):
+    if key not in web.ctx.env['trace_info']:
+        logger.error(f'{key} not in web.ctx.env.trace_info, init...')
+
+    if key in web.ctx.env['trace_info'] and sub_key in web.ctx.env['trace_info'][key]:
+        web.ctx.env['trace_info'][key][sub_key].append(msg)
+        return
+
+    web.ctx.env['trace_info'][key][sub_key] = [msg]
+
+
 def _get_basic_soup_from_http(customer_name, content) -> Tuple[str, BeautifulSoup, BeautifulSoup]:
     logger.debug('---------------invoke get_basic_soup_from_http ---------------------')
     error_msg, birthday, dist, is_dst, toffset, location = _prepare_http_data(content=content, name=customer_name)
@@ -896,14 +1070,17 @@ def _get_basic_soup_from_http(customer_name, content) -> Tuple[str, BeautifulSou
         return err_no, None, None
 
     """ almuten Http Result. """
+    '''
     time2 = time.time()
     post_data = _build_almuten_http_data(name=customer_name, birthinfo=birthday, loc=location, glon_deg=glon_deg, glat_deg=glat_deg, toffset=toffset, is_dst=is_dst)
     soup_almuten = _fetch_almuten_soup(post_data)
     time2_2 = time.time()
     time_diff2 = int((time2_2 - time2) * 1000)
     logger.debug(f'成功通过HTTP获取「宫神星」排盘信息, Latency={time_diff2}...')
+    '''
 
-    return error_msg, soup_ixingpan, soup_almuten
+    # return error_msg, soup_ixingpan, soup_almuten
+    return error_msg, soup_ixingpan, None
 
 
 def _prepare_http_data(content, name=None) -> Tuple[str, str, str, str, str, str]:
@@ -1283,6 +1460,7 @@ pattern_constellation = re.compile(r'\([^)]*\)'r'(.+?)\s*\((\d+).*?\)(?:\s*\((.*
 pattern_house = re.compile(r'\d+')
 constellation_whitelist = {'天王', '海王', '冥王', '太阳', '月亮', '水星', '火星', '木星', '土星', '金星'}
 
+
 def _parse_ixingpan_star(soup):
     '''
     解析包括：
@@ -1432,18 +1610,78 @@ def _parse_ixingpan_aspect(soup):
         star_a = tds[0].text.strip()
         star_b = tds[2].text.strip()
         aspect = tds[1].text.strip()
+        degree = int(tds[4].text.strip().split('°')[0])  # 7°38
 
         # logger.debug(f'{star_a} {star_b} {aspect}')
 
         aspect = aspect if aspect != '拱' else '三合'
 
-        aspect_obj = Aspect(star_b=star_b, aspect=aspect)
+        aspect_obj = Aspect(star_b=star_b, aspect=aspect, degree=degree)
         # star_dict[star_a].aspect_vec_old.append(aspect_obj)
         web.ctx.env['star_dict'][star_a].aspect_dict[star_b] = aspect_obj
 
         # 反过来填充
-        aspect_obj_reverse = Aspect(star_b=star_a, aspect=aspect)
+        aspect_obj_reverse = Aspect(star_b=star_a, aspect=aspect, degree=degree)
         web.ctx.env['star_dict'][star_b].aspect_dict[star_a] = aspect_obj_reverse
+
+
+def get_afflict():
+    '''
+    灾星系统
+        第一档（被一个克到就有明显事件）：8宫主 ≥ 命主星(上升点也算) > 12宫主
+        第二档（被两个克到才有明显事件）：土星 = 海王 = 冥王 = 天王
+        第三档（辅助参考）：火星 = 凯龙
+
+    受克程度：0° > 90 > 180
+    宫主星与灾星受克：
+        1. 与灾星0、90、180
+        2. 与除灾星外的宫主星形成：0、90、180
+        3. 与四轴成0度，等同于
+    :return:
+    '''
+    # Step 1. 获取三挡灾星
+    ruler_1 = web.ctx.env['house_dict'][1].ruler
+    ruler_8 = web.ctx.env['house_dict'][8].ruler
+    ruler_12 = web.ctx.env['house_dict'][12].ruler
+
+    star_dict = get_session(key=SESS_KEY_STAR)
+    afflict_dict = get_session(SESS_KEY_AFFLICT)
+
+    level_vec_1 = [ruler_1, ruler_8, ruler_12]
+    level_vec_2 = ['土星', '海王', '冥王', '天王']
+    zip_1 = zip(level_vec_1, ['命主星', '8宫主', '12宫主'])
+
+
+    whitelist = ['太阳', '月亮', '水星', '火星', '木星', '土星', '金星']
+    for target in whitelist:
+        if len(star_dict[target].aspect_dict) == 0:
+            continue
+
+        for ruler, name in zip_1:
+            if ruler not in star_dict[target].aspect_dict:
+                continue
+
+            if star_dict[target].aspect_dict[ruler].aspect not in {'刑', '冲', '合'}:
+                continue
+
+            if target not in afflict_dict:
+                a = Affliction(star=target)
+                afflict_dict[target] = a
+
+            afflict_dict[target].level_1.append(name)
+
+        for name in level_vec_2:
+            if name not in star_dict[target].aspect_dict:
+                continue
+
+            if star_dict[target].aspect_dict[name].aspect not in {'刑', '冲', '合'}:
+                continue
+
+            if target not in afflict_dict:
+                a = Affliction(star=target)
+                afflict_dict[target] = a
+
+            afflict_dict[target].level_1.append(name)
 
 
 def get_square():
@@ -1523,8 +1761,15 @@ def get_square():
     web.ctx.env['trace_info']['灾星系统']['盘主灾星信息'] = trace_square_vec
 
 
-# ----------------------- 互溶接纳 -----------------------
+""" ----------------------- 日返盘 ------------------------ """
+# https://www.douban.com/note/745098309/?_i=0037311IUjPhy-
+# https://www.douban.com/note/809544001/?_i=0035919IUjPhy-
+
+
+
+""" ----------------------- 互溶接纳 ----------------------- """
 black_key = {'天王', '海王', '冥王', '北交', '福点', '凯龙', '婚神', '上升', '中天', '下降', '天底'}
+
 
 def is_received_or_mutal():
     star_dict = get_session(key=SESS_KEY_STAR)
@@ -1553,7 +1798,6 @@ def is_received_or_mutal():
 
             if b_mutal:
                 logger.debug(f'{star_a} {star_b} 互容')
-
 
 
 def is_mutal(a: Star, b: Star):
@@ -1622,12 +1866,7 @@ def is_received(a: Star, b: Star):
     #     return False
 
 
-
-
-
-
-
-# ----------------------- 计算先天尊贵 --------------------
+""" ----------------------- 计算先天尊贵 -------------------- """
 def is_triplicity_ruler(star_name: str, target_constellation: str):
     '''
     # 三分
@@ -1720,7 +1959,7 @@ def is_exaltation_ruler(star: str, target_const: str):
     return False
 
 
-# ----------------------- 夏令时 -------------------------
+""" ----------------------- 夏令时 ------------------------- """
 def get_is_dst(loc, time_str):
     logger.debug('开始执行夏令时检查...')
     # 重庆（Chongqing）：Asia / Chongqing
@@ -1746,7 +1985,7 @@ def get_is_dst(loc, time_str):
     return is_dst
 
 
-# ------------------------ Dump 数据 ---------------------
+""" ------------------------ Dump 数据 --------------------- """
 def dump_obj(obj, filepath):
     with open(filepath, 'wb') as file:
         pickle.dump(obj, file)
@@ -1754,7 +1993,7 @@ def dump_obj(obj, filepath):
     logger.debug(f'成功Dump文件, {filepath}')
 
 
-# ------------------------- 生成返回结果 ---------------------
+""" ------------------------- 生成返回结果 --------------------- """
 def build_result(domain=DomainAsc):
     trace_dict = get_session(SESSION_KEY_TRACE)
     if domain not in trace_dict:
@@ -1822,7 +2061,7 @@ def get_more_result():
     return ''.join([msg, index_str])
 
 
-# --------------------------- get set session 变量-----------------
+""" --------------------------- get set session 变量----------------- """
 def get_session(key):
     if key not in web.ctx.env:
         logger.warning(f'get_sess error, key:{key} not exists...')
@@ -1834,7 +2073,7 @@ def get_session(key):
 def set_session(key, val):
     web.ctx.env[key] = val
 
-# ----------------------------- 各种 init -------------------------
+""" ----------------------------- 各种 init ------------------------- """
 def init_session():
     """
     加载文件、初始化context字典
@@ -1938,6 +2177,10 @@ def init_trace():
     if SESS_KEY_CONST not in web.ctx.env:
         constellation_dict: Dict[str, Constellation] = {}
         set_session(SESS_KEY_CONST, constellation_dict)
+
+    if SESS_KEY_AFFLICT not in web.ctx.env:
+        afflict_dict: Dict[str, Affliction] = {}  # {木星: afflict}
+        set_session(SESS_KEY_AFFLICT, afflict_dict)
 
     all_trace_dict: Dict[str, Dict[str, List[str]]] = {}
 

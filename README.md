@@ -25,8 +25,9 @@
    + [x] 婚神落宫的解析
    + [x] 初等学业、高等学业解析
    + [x] 增加性格解析（星性合像等）
-   + [ ] 事业运和公司运：https://www.douban.com/group/topic/23078861/?_i=9927213IUjPhy-
-   + [ ] 星座性格来看适合职业工作：https://www.douban.com/group/topic/23078665/?_i=9929715IUjPhy-
+   + [ ] 老年痴呆：https://www.douban.com/group/topic/82889068/?_i=9963519IUjPhy-
+   + [x] 事业运和公司运：https://www.douban.com/group/topic/23078861/?_i=9927213IUjPhy-
+   + [x] 星座性格来看适合职业工作：https://www.douban.com/group/topic/23078665/?_i=9929715IUjPhy-
    + [ ] 看出国：https://www.douban.com/note/170662448/?_i=9929102IUjPhy-
    + [ ] 艺术家金海相位：https://www.douban.com/note/335108891/?_i=9929021IUjPhy-
    + [ ] 元素统计：如何看元素在新盘中的占比？我个人是10大行星+上升+天顶，其中日月升比重给高点，三王星天海冥的比重给低点，其他星分值一样。
