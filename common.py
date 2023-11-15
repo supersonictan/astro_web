@@ -29,6 +29,7 @@ KNOWLEDGE_KEY = 'knowledge_dict'
 
 NUM_WHITELIST = {'1', '2', '3', '4', '5', '6', '7'}
 
+old_star_list = ['太阳', '月亮', '水星', '火星', '木星', '土星', '金星']
 
 class Recepted:
     def __init__(self, star_a, star_b, action_name, level=''):
@@ -144,7 +145,7 @@ def basic_analyse():
         logger.error(f'basic_analyse._get_basic_soup_from_http 执行失败，err={error_msg}')
         return
 
-    dump_obj(soup_ixingpan, get_session(FILENAME_SOUP1))
+    dump_obj(soup_ixingpan, get_session(FILENAME_SOUP2))
     # dump_obj(soup_almuten, get_session(FILENAME_SOUP2))
 
     # 解析宫神星网结果, 不删因为之后法达可能需要
@@ -206,7 +207,7 @@ def basic_analyse():
         logger.debug('\n------------------- Debug 受克信息 --------------------')
         dict_tmp = get_session(SESS_KEY_AFFLICT)
         for star, obj in dict_tmp.items():
-            logger.debug(f'{star}\t一档受克:{" ".join(obj.level_1)}\t二挡受克:{" ".join(obj.level_2)}')
+            logger.debug(f'星体:{star}\t一档受克:{" ".join(obj.level_1)}\t二挡受克:{" ".join(obj.level_2)}')
 
 
     get_square()
@@ -687,7 +688,7 @@ def parse_marrage():
     trace_vec_appearance.append(msg)
 
     for star_name in house_dict[7].loc_star:
-        if star_name in {'冥王', '天王', '海王', '北交'}:
+        if star_name not in old_star_list:
             continue
 
         reason_debug = f'【7宫内{star_name}】' if is_debug else ''
@@ -726,7 +727,7 @@ def parse_marrage():
     reason_debug = f'【7r={ruler_7}】' if is_debug else ''
     trace_age_vec = [f'{reason_debug}配偶{marriage_age_dict[ruler_7]}']
     for star_name in house_dict[7].loc_star:
-        if star_name in {'冥王', '天王', '海王', '北交'}:
+        if star_name not in old_star_list:
             continue
 
         reason_debug = f'【7宫内{star_name}】' if is_debug else ''
@@ -1652,8 +1653,7 @@ def get_afflict():
     zip_1 = zip(level_vec_1, ['命主星', '8宫主', '12宫主'])
 
 
-    whitelist = ['太阳', '月亮', '水星', '火星', '木星', '土星', '金星']
-    for target in whitelist:
+    for target in old_star_list:
         if len(star_dict[target].aspect_dict) == 0:
             continue
 
@@ -1681,7 +1681,7 @@ def get_afflict():
                 a = Affliction(star=target)
                 afflict_dict[target] = a
 
-            afflict_dict[target].level_1.append(name)
+            afflict_dict[target].level_2.append(name)
 
 
 def get_square():
