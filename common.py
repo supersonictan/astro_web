@@ -29,7 +29,7 @@ KNOWLEDGE_KEY = 'knowledge_dict'
 
 NUM_WHITELIST = {'1', '2', '3', '4', '5', '6', '7'}
 
-old_star_list = ['太阳', '月亮', '水星', '火星', '木星', '土星', '金星']
+seven_star_list = ['太阳', '月亮', '水星', '火星', '木星', '土星', '金星']
 
 class Recepted:
     def __init__(self, star_a, star_b, action_name, level=''):
@@ -68,6 +68,7 @@ class Star:
         self.house: int = house  # 落宫
         self.score = score
         self.lord_house_vec: List = lord_house_vec  # 几宫主
+        self.is_afflicted = False  # 是否被克
 
         self.recepted_dict: Dict[str, Recepted] = {}  # {star_b: ReceptedObj}
         self.aspect_dict: Dict[str, Aspect] = {}  # {star_b, Aspect}
@@ -146,10 +147,6 @@ def basic_analyse():
         return
 
     dump_obj(soup_ixingpan, get_session(FILENAME_SOUP2))
-    # dump_obj(soup_almuten, get_session(FILENAME_SOUP2))
-
-    # 解析宫神星网结果, 不删因为之后法达可能需要
-    # _parse_almuten_star(soup_almuten)
 
     # 解析爱星盘结果
     _parse_ixingpan_house(soup_ixingpan)
@@ -158,7 +155,9 @@ def basic_analyse():
 
     # 互溶接纳
     is_received_or_mutal()
-    get_afflict()
+
+    # 设置受克信息
+    set_session_afflict()
 
     if True:
         logger.debug('\n------------------- Debug 宫位信息 --------------------')
@@ -194,8 +193,9 @@ def basic_analyse():
                 rec_msg = ';'.join(rec_vec)
                 rec_msg2 = f'接纳信息: {rec_msg}'
 
+
             # logger.debug(f'-->{name} 落{house}宫 {const}座 {degree}° 分:{score} 庙:{is_domicile} 旺:{is_exaltation} 三:{is_triplicity} 界:{is_term} 十:{is_face}')
-            logger.debug(f'-->{name}\t落{house}宫\t{const}座\t{degree}°\t得分:{score}\t守护宫:{star_obj.lord_house_vec}\t{rec_msg2}')
+            logger.debug(f'-->{name}\t落{house}宫\t{const}座\t{degree}°\t得分:{score}\t受克:{star_obj.is_afflicted}\t守护宫:{star_obj.lord_house_vec}\t{rec_msg2}')
 
         logger.debug('\n------------------- Debug 星座信息 --------------------')
         dict_tmp = get_session(SESS_KEY_CONST)
@@ -209,9 +209,6 @@ def basic_analyse():
         for star, obj in dict_tmp.items():
             logger.debug(f'星体:{star}\t一档受克:{" ".join(obj.level_1)}\t二挡受克:{" ".join(obj.level_2)}')
 
-
-    get_square()
-
     parse_asc_star()
     parse_love()
     parse_marrage_2()
@@ -220,13 +217,13 @@ def basic_analyse():
     parse_work()
     parse_study()
 
+    parse_wealth()
     dump_obj(get_session(SESSION_KEY_TRACE), get_session(FILENAME_REPORT))
     # return error_msg, soup_ixingpan, soup_almuten
     # get_house_energy()
 
 
 
-    # parse_wealth()
     # parse_health()
     # print('----------------------------')
 
@@ -318,39 +315,53 @@ def parse_wealth():
             ret = f'{cause}, 得财方式可以是：{knowledge_dict["得财"][tmp_key]}'
             add_trace('财富', '从哪里得财', ret)
 
-
-    # 1. 判断宫主星飞2宫得财，只有吉的时候
+    # 判断飞星得财: 吉星飞入2宫
     for loc_s in house_dict[2].loc_star:
-        # 判断得分
-        if loc_s not in old_star_list:
+        if loc_s not in seven_star_list:
             continue
-        if star_dict[loc_s].score <= 3:
+
+        # 先天，后天都不得吉
+        if not (star_dict[loc_s].score > 3 and not star_dict[loc_s].is_afflicted):
             continue
 
         for houseid in star_dict[loc_s].lord_house_vec:
-            key1 = f'{houseid}飞2得财'
-            key2 = f'{houseid}飞2破财'
+            key = f'{houseid}飞2得财'
 
             # 计算得财
-            if key1 not in knowledge_dict["得财"]:
+            if key not in knowledge_dict["得财"]:
                 continue
 
-            cause = f'{loc_s}飞到了2宫得吉'
-            ret = f'{cause}, 得财方式可以是：{knowledge_dict["得财"][key1]}'
-            add_trace('财富', '从哪里得财', ret)
+            cause = f'{loc_s}在财帛宫得吉'
+            ret = f'{cause}, {knowledge_dict["得财"][key]}'
+            add_trace('财富', '得财方式可以是', ret)
 
-            # 计算破财
-            if key2 not in knowledge_dict["得财"]:
+    # 判断飞星破财: 飞入2宫 + 不得吉
+    for loc_s in house_dict[2].loc_star:
+        if loc_s not in seven_star_list:
+            continue
+
+        # 不得吉
+        if not (star_dict[loc_s].score < 0 or star_dict[loc_s].is_afflicted):
+            continue
+
+        for houseid in star_dict[loc_s].lord_house_vec:
+            key = f'{houseid}飞2破财'
+
+            # 计算得财
+            if key not in knowledge_dict["得财"]:
                 continue
 
-            ret = f'注意{knowledge_dict["得财"][key2]}'
-            add_trace('财富', '可能破财的点', ret)
+            cause = f'{loc_s}受克'
+            ret = f'{cause}, {knowledge_dict["得财"][key]}'
+            add_trace('财富', '可能出现破财的因素', ret)
+
 
     # 2. 判断2r飞宫钱会花钱在什么地方
     ruler2_loc = star_dict[ruler2].house
-    key = f'2飞{ruler2_loc}'
-    wealth_trace_dict['钱会花在什么地方'] = [f'【{key}】{knowledge_dict_old[key]}']
-    all_trace_dict['财富'] = wealth_trace_dict
+    ruler2_status = '衰' if star_dict[ruler2].is_afflicted or star_dict[ruler2].score <= 0 else '旺'
+    key = f'2飞{ruler2_loc}{ruler2_status}'
+
+    add_trace('财富', '钱会花在什么地方', f'{knowledge_dict["得财"][key]}')
 
 
 def parse_study():
@@ -644,7 +655,7 @@ def parse_marrage():
     trace_vec_appearance.append(msg)
 
     for star_name in house_dict[7].loc_star:
-        if star_name not in old_star_list:
+        if star_name not in seven_star_list:
             continue
 
         reason_debug = f'【7宫内{star_name}】' if is_debug else ''
@@ -683,7 +694,7 @@ def parse_marrage():
     reason_debug = f'【7r={ruler_7}】' if is_debug else ''
     trace_age_vec = [f'{reason_debug}配偶{marriage_age_dict[ruler_7]}']
     for star_name in house_dict[7].loc_star:
-        if star_name not in old_star_list:
+        if star_name not in seven_star_list:
             continue
 
         reason_debug = f'【7宫内{star_name}】' if is_debug else ''
@@ -1465,7 +1476,7 @@ def _parse_ixingpan_star(soup):
             r.constellation = constellation
             web.ctx.env['star_dict'][star] = r
 
-        web.ctx.env['star_dict'][star].degree = int(degree)
+        star_dict[star].degree = int(degree)
         # self.degree: int  # 度数
         # self.is_triplicity = 0  # 三份
         # self.is_term_ruler = 0  # 界
@@ -1498,10 +1509,10 @@ def _parse_ixingpan_star(soup):
         star_dict[star].is_term = is_term
 
         score = 5 * is_domicile + 4 * is_exaltation + 3 * is_triplicity + 2 * is_term + 1*is_face - 4*is_detriment - 5*is_fall
-        if star not in {'太阳', '月亮', '水星', '木星', '火星', '土星', '金星'}:
+        if star not in seven_star_list:
             score = -1
 
-        web.ctx.env[SESS_KEY_STAR][star].score = score
+        star_dict[star].score = score
 
         if star in star_ruler_dict:
             star_dict[star].lord_house_vec = star_ruler_dict[star]
@@ -1597,7 +1608,8 @@ def _parse_ixingpan_aspect(soup):
         web.ctx.env['star_dict'][star_b].aspect_dict[star_a] = aspect_obj_reverse
 
 
-def get_afflict():
+""" ----------------------- 受克情况 ------------------------ """
+def set_session_afflict():
     '''
     灾星系统
         第一档（被一个克到就有明显事件）：8宫主 ≥ 命主星(上升点也算) > 12宫主
@@ -1623,8 +1635,7 @@ def get_afflict():
     level_vec_2 = ['土星', '海王', '冥王', '天王']
     zip_1 = zip(level_vec_1, ['命主星', '8宫主', '12宫主'])
 
-
-    for target in old_star_list:
+    for target in seven_star_list:
         if len(star_dict[target].aspect_dict) == 0:
             continue
 
@@ -1654,82 +1665,29 @@ def get_afflict():
 
             afflict_dict[target].level_2.append(name)
 
+    # 设置得吉受克信息到 star_dict
+    for star, afflict_obj in afflict_dict.items():
+        if len(afflict_obj.level_1) >= 1:
+            star_dict[star].is_afflicted = True
+        elif len(afflict_obj.level_2) >= 2:
+            star_dict[star].is_afflicted = True
 
-def get_square():
+
+def get_star_afflict(star: str) -> Tuple[bool, int]:
     '''
-    灾星系统
-        第一档（被一个克到就有明显事件）：8宫主 ≥ 命主星(上升点也算) > 12宫主
-        第二档（被两个克到才有明显事件）：土星 = 海王 = 冥王 = 天王
-        第三档（辅助参考）：火星 = 凯龙
-
-    受克程度：0° > 90 > 180
-    宫主星与灾星受克：
-        1. 与灾星0、90、180
-        2. 与除灾星外的宫主星形成：0、90、180
-        3. 与四轴成0度，等同于
-    :return: 几宫主被一档灾星8宫主（火星）克
+        输入目标星体，返回：是否受克 + 黄岛得分
     '''
 
-    # Step 1. 获取三挡灾星
-    ruler_1 = web.ctx.env['house_dict'][1].ruler
-    ruler_8 = web.ctx.env['house_dict'][8].ruler
-    ruler_12 = web.ctx.env['house_dict'][12].ruler
+    afflict_dict = get_session(SESS_KEY_AFFLICT)
+    star_dict = get_session(SESS_KEY_STAR)
 
-    trace_square_vec = [f'背景信息:\n\t第一档灾星: 8r ≥ 1r ＞ 12r\n\t第二档灾星: 土星 = 海王 = 冥王 = 天王\n\t第三档灾星: 土星 = 凯龙', f'盘主: 8r=「{ruler_8}」, 1r=「{ruler_1}」，12r=「{ruler_12}」']
-    # print(f'\n\n第一档灾星(被一个克到就有明显事件)：1宫主「{ruler_1}」，8宫主「{ruler_8}」，12宫主「{ruler_12}」')
+    if star not in afflict_dict:
+        return False, star_dict[star].score
 
-    sorted_dict = dict(sorted(web.ctx.env['house_dict'].items(), key=lambda x: x[0]))
+    if len(afflict_dict[star].level_1) >= 1 or len(afflict_dict[star].level_2) >= 2:
+        return True, star_dict[star].score
 
-    total_square_vec = []
-
-    for house_id, obj in sorted_dict.items():
-        ruler = obj.ruler  # 宫主星
-        house_msg_vec = [f'{house_id}r={ruler}']
-
-        # 宫主星==灾星
-        if ruler == ruler_8:
-            house_msg_vec.append(f'与8r同星(一档灾星)')
-        elif ruler == ruler_12:
-            house_msg_vec.append(f'与12r同星(一档灾星)')
-
-        # 解析宫主星受克情况
-        aspect_vec = list(web.ctx.env['star_dict'][ruler].aspect_dict.values())
-
-        for aspect_obj in aspect_vec:
-            star_b = aspect_obj.star_b
-            aspect_info = aspect_obj.aspect
-
-            if aspect_info in {'三合', '六合'}:
-                continue
-
-            if star_b not in web.ctx.env['star_dict']:
-                continue
-
-            square_msg = ''
-            if star_b == ruler_8:
-                square_msg = f'被8r({star_b})克({aspect_info}, 一档灾星)'
-            elif star_b == ruler_1:
-                square_msg = f'被1r（{star_b}）克({aspect_info}, 一档灾星)'
-            elif star_b == ruler_12:
-                square_msg = f'被12r（{star_b}）克({aspect_info}, 一档灾星)'
-            elif star_b in {'土星', '海王', '冥王', '天王'}:
-                square_msg = f'被{star_b}克({aspect_info}, 二档灾星)'
-            elif star_b in {'火星'}:
-                square_msg = f'被{star_b} 克({aspect_info}, 三档灾星)'
-
-            if square_msg and square_msg not in house_msg_vec:
-                house_msg_vec.append(square_msg)
-
-        total_square_vec.append(house_msg_vec)
-
-    for msg_vec in total_square_vec:
-        if len(msg_vec) == 1:
-            continue
-
-        trace_square_vec.append(', '.join(msg_vec))
-        # print(', '.join(msg_vec))
-
-    web.ctx.env['trace_info']['灾星系统']['盘主灾星信息'] = trace_square_vec
+    return False, star_dict[star].score
 
 
 """ ----------------------- 日返盘 ------------------------ """
