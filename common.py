@@ -195,7 +195,7 @@ def basic_analyse():
                 rec_msg2 = f'接纳信息: {rec_msg}'
 
             # logger.debug(f'-->{name} 落{house}宫 {const}座 {degree}° 分:{score} 庙:{is_domicile} 旺:{is_exaltation} 三:{is_triplicity} 界:{is_term} 十:{is_face}')
-            logger.debug(f'-->{name}\t落{house}宫\t{const}座\t{degree}°\t得分:{score}\t\t{rec_msg2}\t守护宫:{" ".join(star_obj.lord_house_vec)}')
+            logger.debug(f'-->{name}\t落{house}宫\t{const}座\t{degree}°\t得分:{score}\t守护宫:{star_obj.lord_house_vec}\t{rec_msg2}')
 
         logger.debug('\n------------------- Debug 星座信息 --------------------')
         dict_tmp = get_session(SESS_KEY_CONST)
@@ -319,7 +319,7 @@ def parse_wealth():
             add_trace('财富', '从哪里得财', ret)
 
 
-    # 判断宫主星飞2宫得财，只有吉的时候
+    # 1. 判断宫主星飞2宫得财，只有吉的时候
     for loc_s in house_dict[2].loc_star:
         # 判断得分
         if loc_s not in old_star_list:
@@ -327,10 +327,26 @@ def parse_wealth():
         if star_dict[loc_s].score <= 3:
             continue
 
-        for _ in star_dict[loc_s].lord_house_vec:
+        for houseid in star_dict[loc_s].lord_house_vec:
+            key1 = f'{houseid}飞2得财'
+            key2 = f'{houseid}飞2破财'
 
+            # 计算得财
+            if key1 not in knowledge_dict["得财"]:
+                continue
 
+            cause = f'{loc_s}飞到了2宫得吉'
+            ret = f'{cause}, 得财方式可以是：{knowledge_dict["得财"][key1]}'
+            add_trace('财富', '从哪里得财', ret)
 
+            # 计算破财
+            if key2 not in knowledge_dict["得财"]:
+                continue
+
+            ret = f'注意{knowledge_dict["得财"][key2]}'
+            add_trace('财富', '可能破财的点', ret)
+
+    # 2. 判断2r飞宫钱会花钱在什么地方
     ruler2_loc = star_dict[ruler2].house
     key = f'2飞{ruler2_loc}'
     wealth_trace_dict['钱会花在什么地方'] = [f'【{key}】{knowledge_dict_old[key]}']
