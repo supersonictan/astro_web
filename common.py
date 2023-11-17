@@ -337,6 +337,22 @@ def parse_wealth():
 
     # 判断飞星破财: 飞入2宫 + 不得吉
     for loc_s in house_dict[2].loc_star:
+        if loc_s == '土星' and (star_dict[loc_s].is_afflicted or star_dict[loc_s].score < 0):
+            key = '土星2宫被刑冲'
+            if key in knowledge_dict["得财"]:
+                ret = f'{key}, {knowledge_dict["得财"][key]}'
+                add_trace('财富', '可能出现破财的因素', ret)
+
+
+        if loc_s in {'冥王', '天王', '海王'}:
+            # 天王2宫破财
+            key = f'{loc_s}2宫破财'
+            if key in knowledge_dict["得财"]:
+                ret = f'{key}, {knowledge_dict["得财"][key]}'
+                add_trace('财富', '可能出现破财的因素', ret)
+
+
+        # --------------------- 看宫性
         if loc_s not in seven_star_list:
             continue
 
@@ -351,7 +367,7 @@ def parse_wealth():
             if key not in knowledge_dict["得财"]:
                 continue
 
-            cause = f'{loc_s}受克'
+            cause = f'{loc_s}宫内受克'
             ret = f'{cause}, {knowledge_dict["得财"][key]}'
             add_trace('财富', '可能出现破财的因素', ret)
 
@@ -382,8 +398,8 @@ def parse_study():
     junior_desc = knowledge_dict['初等学业飞星'][key3]
     senior_desc = knowledge_dict['高等学业飞星'][key9]
 
-    set_trace_info('学业', '高中前', [junior_desc])
-    set_trace_info('学业', '高中后', [senior_desc])
+    set_trace_info('学业', '高中前', [f'{key3} --> {junior_desc}'])
+    set_trace_info('学业', '高中后', [f'{key9} --> {senior_desc}'])
 
     # 3、9宫落⭐️
     star_in_3 = house_dict[3].loc_star
@@ -396,9 +412,9 @@ def parse_study():
             sub_dict = knowledge_dict['初等学业飞星'] if id == 3 else knowledge_dict['高等学业飞星']
 
             if id == 3 and key in sub_dict:
-                set_trace_info('学业', '高中前', [sub_dict[key]])
+                set_trace_info('学业', '高中前', [f'{key} --> {sub_dict[key]}'])
             elif id == 9 and key in sub_dict:
-                set_trace_info('学业', '高中后', [sub_dict[key]])
+                set_trace_info('学业', '高中后', [f'{key} --> {sub_dict[key]}'])
 
 
 def parse_asc_star():
@@ -579,7 +595,8 @@ def parse_work():
     关键词：自我价值实现
     职业：运动员、主持人、模特、销售、自由职业、创业
     """
-    is_debug = web.ctx.env['is_debug']
+    # is_debug = web.ctx.env['is_debug']
+    is_debug = True
     star_dict = web.ctx.env["star_dict"]
     house_dict = web.ctx.env["house_dict"]
     jobs_dict = web.ctx.env['knowledge_dict']['职业-飞星']
@@ -608,7 +625,7 @@ def parse_work():
 
         val = jobs_star_dict[search_key]
 
-        reason_debug = f'【{search_key}】' if is_debug else ''
+        reason_debug = f'【{star_dict[loc_star].score}分{search_key}】' if is_debug else ''
         sub_vec.append(f'{reason_debug}{val}')
 
     if len(sub_vec) > 0:
@@ -631,10 +648,11 @@ def parse_bad_spouse():
     ruler_7 = house_dict[7].ruler
     ruler_loc = house_dict[7].ruler_loc
 
-    if ruler_loc != 7:
-        return '', ''
-
     field_name = '是否会低嫁/娶'
+
+    if ruler_loc != 6:
+        return field_name, '配偶和你条件差不多,不属于低娶低嫁的情况.'
+
     cause = f'{ruler_7}在你盘中代表配偶，跑去了服务/工作位置，意味着你可能会看上比自己条件低的人，当然这只是一种可能，也有可能出现配偶服务自己的意思，也或者另一半在工作中认识(平级或低于自己).'
 
     return  field_name, cause
@@ -1942,10 +1960,11 @@ def build_result(domain=DomainAsc):
         if len(sub_vec) > 1:
             sub_vec_with_numbers = [f"{i + 1}、{item}" for i, item in enumerate(sub_vec)]
         else:
-            sub_vec_with_numbers = [f"{item}" for i, item in enumerate(sub_vec)]
+            # sub_vec_with_numbers = [f"{item}" for i, item in enumerate(sub_vec)]
+            sub_vec_with_numbers = [f"{i + 1}、{item}" for i, item in enumerate(sub_vec)]
 
         msg = '\n'.join(sub_vec_with_numbers)
-        report.append(f'\n{no_vec[idx]}、{biz}: {msg}')
+        report.append(f'\n{no_vec[idx]}、{biz}: \n{msg}')
 
     msg1 = '\n'.join(report)
     msg2 = get_more_result()
@@ -2123,6 +2142,7 @@ def init_trace():
     work_trace_dict: Dict[str, List[str]] = {}
     asc_trace_dict: Dict[str, List[str]] = {}
     study_trace_dict: Dict[str, List[str]] = {}
+    wealth_trace_dict: Dict[str, List[str]] = {}
 
     all_trace_dict['灾星系统'] = disaster_trace_dict
     all_trace_dict[DomainLove] = love_trace_dict
@@ -2130,6 +2150,7 @@ def init_trace():
     all_trace_dict[DomainWork] = work_trace_dict
     all_trace_dict[DomainAsc] = asc_trace_dict
     all_trace_dict[DomainStudy] = study_trace_dict
+    all_trace_dict[DomainMoney] = wealth_trace_dict
 
     # web.ctx.env['trace_info'] = all_trace_dict
     set_session(SESSION_KEY_TRACE, all_trace_dict)
