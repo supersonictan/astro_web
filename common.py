@@ -1083,6 +1083,9 @@ def _prepare_http_data(content, name=None) -> Tuple[str, str, str, str, str, str
         city = df.iloc[0]['市']
         area = df.iloc[0]['区']
 
+        if area is None:
+            area = city
+
         return province, city, area
 
     def _parse_time(text: str) -> str:
@@ -1160,7 +1163,9 @@ def _prepare_http_data(content, name=None) -> Tuple[str, str, str, str, str, str
                 json_data = json_data[key]
 
     province, city, area = _parse_location(content)
+    logger.debug(f'prov:{province} city:{city} area:{area}')
     birthday = _parse_time(content)
+    logger.debug(f'birthday:{birthday}')
 
     if not province or not city or not area or not birthday:
         return '解析出生地/生时失败', birthday, '', '', '', ''
@@ -1940,6 +1945,44 @@ def dump_obj(obj, filepath):
     logger.debug(f'成功Dump文件, {filepath}')
 
 
+def gen_guest_info():
+    star_dict = get_session(SESS_KEY_STAR)
+    house_dict = get_session(SESS_KEY_HOUSE)
+    constellation_dict = get_session(SESS_KEY_CONST)
+
+    for star_name, star_obj in star_dict.items():
+        const = star_obj.constellation
+        degree = star_obj.degree
+        house = star_obj.house
+        score = star_obj.score
+        is_afflicted = '严重受克' if star_obj.is_afflicted else '未严重受克'
+        constellation = star_obj.constellation
+
+        recepted_dict: Dict[str, Recepted] = {}  # {star_b: ReceptedObj}
+        aspect_dict: Dict[str, Aspect] = {}  # {star_b, Aspect}
+
+        # 互容接纳
+        rec_vec = []
+        for k, obj in star_obj.recepted_dict.items():
+            msg = f'与「{obj.star_b}」互容'
+
+            if obj.action_name == '接纳':
+                msg = f'被「{obj.star_b}」接纳'
+
+            rec_vec.append(msg)
+
+        rec_msg2 = ''
+        if len(rec_vec) != 0:
+            rec_msg = ';'.join(rec_vec)
+            rec_msg2 = f'{rec_msg}'
+
+        msg_hurong = '' if rec_msg2 == '' else f'互溶接纳信息：{rec_msg2}'
+        msg_lord = '' if len(star_obj.lord_house_vec) == 0 else f'守护{star_obj.lord_house_vec}宫'
+        msg = f'{star_name}, 黄道得分:{score}, 落{house}宫，{msg_lord}, 在{constellation}座，{msg_hurong}, {is_afflicted}'
+
+        logger.debug(msg) 
+
+
 """ ------------------------- 生成返回结果 --------------------- """
 def build_result(domain=DomainAsc):
     trace_dict = get_session(SESSION_KEY_TRACE)
@@ -1966,6 +2009,7 @@ def build_result(domain=DomainAsc):
         msg = '\n'.join(sub_vec_with_numbers)
         report.append(f'\n{no_vec[idx]}、{biz}: \n{msg}')
 
+    gen_guest_info()
     msg1 = '\n'.join(report)
     msg2 = get_more_result()
     ret = f'{msg1}\n{msg2}'
@@ -2165,6 +2209,7 @@ def init_trace():
 def init_user_attri():
     content = get_session(CONTENT)
     if content in NUM_WHITELIST:
+        logger.debug('用户输入数字....')
         set_session(IS_INPUT_NUM, True)
 
         trans_content = index_dict_inner[content]
@@ -2189,7 +2234,7 @@ def init_user_attri():
         set_session(IS_INPUT_NUM, False)
         err, birthday, dist, is_dst, toffset, location = _prepare_http_data(content=get_session(CONTENT), name=get_session(FROMUSER))
         if err != '':
-            set_session(ERROR, '【排盘失败】\n, 请重新输入...')
+            set_session(ERROR, '【排盘失败】, 请重新输入...')
             return
 
         set_session(BIRTHDAY_KEY, birthday)

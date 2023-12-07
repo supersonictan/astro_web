@@ -47,7 +47,8 @@ class Handle():
             init_session()
             if get_session(ERROR) != '':
                 replyMsg = reply.TextMsg(from_user, to_user, get_session(ERROR))
-                return replyMsg.send()
+                return 'success'
+                # return replyMsg.send()
 
             # 非数字 & 有缓存 --> 返回缓存结果
             if get_session(HAS_REPORT_FILE) and not get_session(IS_INPUT_NUM):
