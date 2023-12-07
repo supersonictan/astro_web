@@ -1953,7 +1953,7 @@ def dump_obj(obj, filepath):
 
 def gen_guest_info():
     """
-    统一话说：n宫主飞n宫、x落几宫、
+    统一话说：n宫主飞n宫、x落几宫、2宫主被1宫主接纳、
     :return:
     """
     star_dict = get_session(SESS_KEY_STAR)
@@ -1994,6 +1994,9 @@ def gen_guest_info():
             for lord_house in lord_house_vec:
                 tmp = f'{lord_house}宫主飞{house}宫'
                 key_ruler_fly.append(tmp)
+
+                if lord_house == 1:
+                    key_star_loc.append(f'命主星落{house}宫')
 
         # 搞落宫
         key_star_loc.append(f'{star_name}落{house}宫')
