@@ -39,4 +39,6 @@ DomainHealth = '健康'
 DomainMoney = '财富'
 TargetDomain = 'target_domain'
 
+LLMKey = 'llm_key'
+
 TermKey = 'term_key'

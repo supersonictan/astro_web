@@ -431,6 +431,8 @@ def parse_asc_star():
     # logger.debug(key)
     desc = knowledge_dict['命主星落宫'][key]
 
+    add_llm_recall(f'{key}:{desc}')
+
     reason_debug = f'【{key}】' if is_debug else ''
 
     set_trace_info(DomainAsc, '重点概括', [f'{reason_debug}{desc}'])
@@ -910,8 +912,12 @@ def parse_love():
             msg_loc = f'【{star}落5宫】{msg}' if is_debug else f'{msg}'
             trace_loc_star_vec.append(msg_loc)
 
+            add_llm_recall(f'{star}落5宫:{msg}')
+
     msg_loc_star = f'(不一定发生)【5宫主{ruler_5}】{loc_star_5_dict[ruler_5]}' if is_debug else f'(不一定发生){loc_star_5_dict[ruler_5]}'
     trace_loc_star_vec.append(msg_loc_star)
+
+    add_llm_recall(f'5宫主{ruler_5}:{loc_star_5_dict[ruler_5]}')
 
     # check 三王星和5r/金星相位
     tmp_vec = [ruler_5, '金星']
@@ -1946,20 +1952,27 @@ def dump_obj(obj, filepath):
 
 
 def gen_guest_info():
+    """
+    统一话说：n宫主飞n宫、x落几宫、
+    :return:
+    """
     star_dict = get_session(SESS_KEY_STAR)
     house_dict = get_session(SESS_KEY_HOUSE)
     constellation_dict = get_session(SESS_KEY_CONST)
 
+    # llm 召回的key
+    key_ruler_fly = []
+    key_star_loc = []
     for star_name, star_obj in star_dict.items():
-        const = star_obj.constellation
+        if star_name in {'北交', '上升', '中天', '下降', '天底'}:
+            continue
+
         degree = star_obj.degree
         house = star_obj.house
         score = star_obj.score
-        is_afflicted = '严重受克' if star_obj.is_afflicted else '未严重受克'
+        is_afflicted = '严重受克' if star_obj.is_afflicted else ''
         constellation = star_obj.constellation
-
-        recepted_dict: Dict[str, Recepted] = {}  # {star_b: ReceptedObj}
-        aspect_dict: Dict[str, Aspect] = {}  # {star_b, Aspect}
+        lord_house_vec = star_obj.lord_house_vec
 
         # 互容接纳
         rec_vec = []
@@ -1976,11 +1989,22 @@ def gen_guest_info():
             rec_msg = ';'.join(rec_vec)
             rec_msg2 = f'{rec_msg}'
 
-        msg_hurong = '' if rec_msg2 == '' else f'互溶接纳信息：{rec_msg2}'
-        msg_lord = '' if len(star_obj.lord_house_vec) == 0 else f'守护{star_obj.lord_house_vec}宫'
-        msg = f'{star_name}, 黄道得分:{score}, 落{house}宫，{msg_lord}, 在{constellation}座，{msg_hurong}, {is_afflicted}'
+        # 搞飞宫
+        if star_name in seven_star_list:
+            for lord_house in lord_house_vec:
+                tmp = f'{lord_house}宫主飞{house}宫'
+                key_ruler_fly.append(tmp)
 
-        logger.debug(msg) 
+        # 搞落宫
+        key_star_loc.append(f'{star_name}落{house}宫')
+
+        msg_hurong = '' if rec_msg2 == '' else f'互溶接纳信息：{rec_msg2}'
+        msg_lord = '' if len(star_obj.lord_house_vec) == 0 else f'是{"、".join(star_obj.lord_house_vec)}的宫主星'
+        msg_score = f'黄道得分:{score},' if star_name not in {'天王', '海王', '冥王', '凯龙', '婚神', '福点'} else ''
+
+        msg = f'{star_name}落{house}宫，{msg_lord}, 在{constellation}座，{msg_score} {msg_hurong}, {is_afflicted}'
+
+        logger.debug(msg)
 
 
 """ ------------------------- 生成返回结果 --------------------- """
@@ -2196,6 +2220,9 @@ def init_trace():
     all_trace_dict[DomainStudy] = study_trace_dict
     all_trace_dict[DomainMoney] = wealth_trace_dict
 
+    llm_recall: List[str] = []
+    web.ctx.env[LLMKey] = llm_recall
+
     # web.ctx.env['trace_info'] = all_trace_dict
     set_session(SESSION_KEY_TRACE, all_trace_dict)
 
@@ -2285,4 +2312,7 @@ def init_check_cache():
         file.write(f"{get_session(BIRTHDAY_KEY2)}\t{get_session(DIST_KEY)}")
     logger.debug(f'成功写文件, [{filename_req}]...')
 
+
+def add_llm_recall(msg: str):
+    web.ctx.env[LLMKey].append(msg)
 
