@@ -25,11 +25,11 @@ logger.addHandler(console_handler)
 
 logger.setLevel(logging.DEBUG)
 # USE_CACHE = True
-KNOWLEDGE_KEY = 'knowledge_dict'
+# KNOWLEDGE_KEY = 'knowledge_dict'
 
 NUM_WHITELIST = {'1', '2', '3', '4', '5', '6', '7'}
 
-seven_star_list = ['太阳', '月亮', '水星', '火星', '木星', '土星', '金星']
+# seven_star_list = ['太阳', '月亮', '水星', '火星', '木星', '土星', '金星']
 
 class Recepted:
     def __init__(self, star_a, star_b, action_name, level=''):
@@ -2036,7 +2036,7 @@ def build_result(domain=DomainAsc):
         msg = '\n'.join(sub_vec_with_numbers)
         report.append(f'\n{no_vec[idx]}、{biz}: \n{msg}')
 
-    gen_guest_info()
+    # gen_guest_info()
     msg1 = '\n'.join(report)
     msg2 = get_more_result()
     ret = f'{msg1}\n{msg2}'
@@ -2104,6 +2104,9 @@ def init_session():
     init_knowledge_dict()
     logger.debug('\n\n成功加载字典文件...')
 
+    init_llm_knowledge_dict()
+    logger.debug('\n\n成功加载LLM字典文件...')
+
     init_trace()
     logger.debug('成功初始化trace变量...')
 
@@ -2142,6 +2145,30 @@ def init_knowledge_dict():
     set_session(SESS_KEY_KNOWLEDGE, knowledge_dict)
 
     init_star_boundry_dict()
+
+
+def init_llm_knowledge_dict():
+    llm_knowledge_dict: Dict[str, Dict[str, str]] = {}
+
+    def _load_knowledge_file():
+        # Load knowledge_web.ini
+        config = configparser.ConfigParser()
+
+        file_name = './file/knowledge_llm.ini'
+        config.read(file_name)
+
+        # 遍历指定section的所有option
+        for section_name in config.sections():
+            for option_name in config.options(section_name):
+                value = config.get(section_name, option_name)
+
+                if section_name in llm_knowledge_dict:
+                    llm_knowledge_dict[section_name][option_name] = value
+                else:
+                    llm_knowledge_dict[section_name] = {option_name: value}
+
+    _load_knowledge_file()
+    set_session(SESS_KEY_LLM_KNOWLEDGE, llm_knowledge_dict)
 
 
 def init_star_boundry_dict():

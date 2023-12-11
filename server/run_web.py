@@ -19,6 +19,8 @@ from Const import *
 import logging
 import reply
 import receive
+import llm_prompt
+from llm_prompt import basic_analyse
 
 logger = logging.getLogger('run_web.py')
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -59,7 +61,7 @@ class Handle():
             elif not get_session(IS_INPUT_NUM) and not get_session(HAS_REPORT_FILE):
                 # 非数字 & 无缓存 --> http咯
                 logger.debug('非数字 & 无缓存 --> http咯...')
-                basic_analyse()
+                llm_prompt.basic_analyse()
                 if get_session(ERROR) != '':
                     reply_str = get_session(ERROR)
                 else:

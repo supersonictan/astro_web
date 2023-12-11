@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 
+star_loc_pattern = '{}落{}宫'
+ruler_loc_pattern = '{}R落{}宫'
+recepted_pattern = '{}R被{}R接纳'
+
+
 FROMUSER, TOUSER, CONTENT = 'from_user', 'to_user', 'content'
 
 FOLDERPATH = 'folder_path'
@@ -11,8 +16,12 @@ HAS_SOUP2_FILE = 'has_soup2_file'
 
 FILE_KEY_REPORT = 'file_key_report'
 
+seven_star_list = ['太阳', '月亮', '水星', '火星', '木星', '土星', '金星']
+
 SESSION_KEY_TRACE = 'trace_info'
+KNOWLEDGE_KEY = 'knowledge_dict'
 SESS_KEY_STAR, SESS_KEY_HOUSE, SESS_KEY_KNOWLEDGE = 'star_dict', 'house_dict', 'knowledge_dict'
+SESS_KEY_LLM_KNOWLEDGE = 'llm_knowledge'
 SESS_KEY_CONST = 'constellation_dict'
 SESS_KEY_AFFLICT = 'afflict_dict'
 SESS_KEY_STAR_RULER = 'star_ruler_dict'
